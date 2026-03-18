@@ -7,7 +7,7 @@ app = FastAPI(title="Football Performance Forecaster")
 
 @app.get("/")
 async def root():
-    return {"message": "Football Analysis API is online!"}
+    return {"message": "Football Analysis API is running and auto deploying updates!"}
 
 # Updated endpoint name
 @app.get("/strikers/forecast")
