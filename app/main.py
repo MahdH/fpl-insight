@@ -1,9 +1,19 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from app.analyzer import get_injured_players, get_strikers_forecast
 from app.analyzer import get_top_in_form_players
 from app.analyzer import get_injured_players
 
 app = FastAPI(title="Football Performance Forecaster")
+
+# Tells API to accept requests from local HTML file
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Allows all websites to fetch your data
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 async def root():
