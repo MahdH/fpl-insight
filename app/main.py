@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.analyzer import get_injured_players, get_strikers_forecast
 from app.analyzer import get_top_in_form_players
 from app.analyzer import get_injured_players
+from .analyzer import calculate_striker_score
 
 app = FastAPI(title="Football Performance Forecaster")
 
