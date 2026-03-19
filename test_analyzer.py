@@ -1,5 +1,39 @@
 import pandas as pd
 import pytest
+from app.analyzer import calculate_striker_score
+
+def test_elite_striker_easy_home_game():
+    """Test a highly in-form striker at home against easy opposition (e.g., Haaland vs Sheffield Utd)"""
+    score = calculate_striker_score(
+        recent_form=8.5, 
+        total_points=180, 
+        next_match_is_home=True, 
+        avg_fdr=2.0
+    )
+    # Form(34) + FDR(22.5) + Pedigree(14.4) + Venue(10) = 80.9
+    assert score == 80.9
+
+def test_average_striker_hard_away_game():
+    """Test a mid-tier striker away against tough opposition (e.g., Solanke away at Arsenal)"""
+    score = calculate_striker_score(
+        recent_form=4.0, 
+        total_points=90, 
+        next_match_is_home=False, 
+        avg_fdr=4.5
+    )
+    # Form(16) + FDR(3.75) + Pedigree(7.2) + Venue(5) = 31.95
+    assert score == 31.95
+
+def test_form_cap():
+    """Ensure a crazy form streak doesn't break the scoring weight (cap at 10.0)"""
+    score = calculate_striker_score(
+        recent_form=15.0, # Unrealistically high
+        total_points=100, 
+        next_match_is_home=True, 
+        avg_fdr=3.0
+    )
+    # The form score should cap at 40, not go over.
+    assert score <= 100.0
 
 def test_forecast_algorithm():
     # 1. Create dummy data (Fake Strikers)

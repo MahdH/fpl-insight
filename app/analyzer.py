@@ -55,6 +55,32 @@ def get_strikers_forecast():
     
     return clean_df.to_dict(orient="records")
 
+def calculate_striker_score(recent_form: float, total_points: int, next_match_is_home: bool, avg_fdr: float, max_season_points: int = 250) -> float:
+    """
+    Calculates a predictive forecast score (0-100) for a striker.
+    """
+    # 1. Form Score (Out of 40)
+    # Assuming max realistic form over 5 games is around 10.0
+    form_score = (min(recent_form, 10.0) / 10.0) * 40 
+
+    # 2. Fixture Difficulty Score (Out of 30)
+    # FDR is 1 to 5. We invert it so lower FDR = higher score. 
+    # Formula: (5 - avg_fdr) / 4 * 30. (e.g., FDR 2 = 22.5 points)
+    fdr_score = max(0, ((5.0 - avg_fdr) / 4.0) * 30)
+
+    # 3. Season Pedigree Score (Out of 20)
+    # Compares their total points to a theoretical season max (e.g., Haaland at 250)
+    pedigree_score = (min(total_points, max_season_points) / max_season_points) * 20
+
+    # 4. Home/Away Advantage (Out of 10)
+    # 10 points for home, 5 points for away
+    venue_score = 10 if next_match_is_home else 5
+
+    # Calculate Total
+    total_forecast_score = round(form_score + fdr_score + pedigree_score + venue_score, 2)
+    
+    return total_forecast_score
+
 def get_top_in_form_players():
     # 1. Fetch the live data
     url = "https://fantasy.premierleague.com/api/bootstrap-static/"

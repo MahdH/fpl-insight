@@ -12,6 +12,18 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+- name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' # Or whichever version you are using
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run Pytest (The Bouncer)
+        run: pytest
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
