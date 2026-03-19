@@ -3,7 +3,7 @@ import pytest
 from app.analyzer import calculate_striker_score
 
 def test_elite_striker_easy_home_game():
-    """Test a highly in-form striker at home against easy opposition (e.g., Haaland vs Sheffield Utd)"""
+    # Testing a highly in-form striker at home against easy an opponent (e.g., Haaland vs Sheffield Utd)
     score = calculate_striker_score(
         recent_form=8.5, 
         total_points=180, 
@@ -14,7 +14,7 @@ def test_elite_striker_easy_home_game():
     assert score == 80.9
 
 def test_average_striker_hard_away_game():
-    """Test a mid-tier striker away against tough opposition (e.g., Solanke away at Arsenal)"""
+    # Testing a mid-tier striker away against tough opposition (e.g., Solanke away at Arsenal)
     score = calculate_striker_score(
         recent_form=4.0, 
         total_points=90, 
@@ -25,7 +25,7 @@ def test_average_striker_hard_away_game():
     assert score == 31.95
 
 def test_form_cap():
-    """Ensure a crazy form streak doesn't break the scoring weight (cap at 10.0)"""
+    # Ensuring a crazy form streak doesn't break the scoring weight (cap at 10.0)
     score = calculate_striker_score(
         recent_form=15.0, # Unrealistically high
         total_points=100, 
