@@ -58,7 +58,29 @@
         // YOUR TOP PERFORMERS FUNCTION
         async function fetchTopPerformers() {
             // Paste your existing fetch logic for the top 3 performers here!
-            document.getElementById('performers-results').innerHTML = "<p><i>(Your JavaScript goes here)</i></p>";
+            const resultDiv = document.getElementById('performers-results');
+            resultDiv.innerHTML = "<p><i>Reavling Top Performers...</i></p>";
+            try {
+                const response = await fetch(`${BASE_URL}/players/top-form`);
+                const data = await response.json();
+                const players = data.top_5_players_inform;
+
+                console.log("Here is what Python sent back:", data);
+
+                let html = `<table><tr><th>Name</th><th>Points</th><th>Form</th></tr>`;
+                players.forEach(p => {
+                    html += `<tr>
+                        <td><strong>${p.web_name}</strong></td>
+                        <td>${p.total_points}</td>
+                        <td>${p.form}</td>
+                    </tr>`;
+                });
+                html += "</table>";
+                resultDiv.innerHTML = html;
+            } catch (err) {
+                resultDiv.innerHTML = `<p style="color:red;">Error connecting to API.</p>`;
+                console.error(err);
+            }
         }
 
         // STRIKER FORECAST FUNCTION
@@ -69,14 +91,16 @@
                 // Append the exact route to the BASE_URL
                 const response = await fetch(`${BASE_URL}/strikers/forecast`);
                 const data = await response.json();
-                const strikers = data.top_strikers;
+                const strikers = data.top_10_strikers;
+
+                console.log("Here is what Python sent back:", data);
 
                 let html = `<table><tr><th>Name</th><th>Form</th><th>Points</th><th>Score</th></tr>`;
                 strikers.forEach(p => {
                     html += `<tr>
-                        <td><strong>${p.name}</strong></td>
-                        <td>${p.recent_form}</td>
-                        <td>${p.total_points}</td>
+                        <td><strong>${p.web_name}</strong></td>
+                        <td>${p.avg_next_3_fdr}</td>
+                        <td>${p.expected_goals}</td>
                         <td class="score">${p.forecast_score}</td>
                     </tr>`;
                 });
@@ -93,9 +117,11 @@
             const resultsDiv = document.getElementById('injuries-results');
             resultsDiv.innerHTML = "<p>Loading...</p>";
             try {
-                const response = await fetch(`${BASE_URL}/players/injuries`);
+                const response = await fetch(`${BASE_URL}/players/injured`);
                 const data = await response.json();
                 const players = data.injured_players;
+
+                console.log("Here is what Python sent back:", data);
 
                 let html = `<table><tr><th>Name</th><th>Status</th></tr>`;
                 

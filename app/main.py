@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.analyzer import get_injured_players, get_strikers_forecast
-from app.analyzer import get_top_in_form_players
-from app.analyzer import get_injured_players
+from app.analyzer import calculate_striker_score, get_injured_players, get_strikers_forecast, get_top_in_form_players, get_injured_players
 import requests
 
 
@@ -22,7 +20,7 @@ async def root():
     return {"message": "Football Analysis API is running and auto deploying updates!"}
 
 # Updated endpoint name
-@app.get("/strikers/forecast")
+@app.get("/strikers/forecast0")
 async def forecast_strikers():
     data = get_strikers_forecast()
     return {"top_10_strikers": data}
@@ -34,7 +32,6 @@ async def top_performers():
 
 @app.get("/players/injured")
 async def injured_players():
-
     data = get_injured_players()
     return {"injured_players": data}
 
