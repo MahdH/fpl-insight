@@ -91,16 +91,16 @@
                 // Append the exact route to the BASE_URL
                 const response = await fetch(`${BASE_URL}/strikers/forecast`);
                 const data = await response.json();
-                const strikers = data.top_10_strikers;
+                const strikers = data.top_strikers;
 
                 console.log("Here is what Python sent back:", data);
 
                 let html = `<table><tr><th>Name</th><th>Form</th><th>Points</th><th>Score</th></tr>`;
                 strikers.forEach(p => {
                     html += `<tr>
-                        <td><strong>${p.web_name}</strong></td>
-                        <td>${p.avg_next_3_fdr}</td>
-                        <td>${p.expected_goals}</td>
+                        <td><strong>${p.name}</strong></td>
+                        <td>${p.recent_form}</td>
+                        <td>${p.total_points}</td>
                         <td class="score">${p.forecast_score}</td>
                     </tr>`;
                 });

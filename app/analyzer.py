@@ -32,25 +32,31 @@ def get_strikers_forecast():
     
     # 5. FILTER STRIKERS & MERGE
     strikers = players_df[players_df['element_type'] == 4].copy()
-    strikers['expected_goals'] = pd.to_numeric(strikers['expected_goals'])
+    strikers['form'] = pd.to_numeric(strikers['form'])
+    strikers['total_points'] = pd.to_numeric(strikers['total_points'])
     
     # Join our new FDR math table with our Strikers table using the 'team' ID column
     strikers = pd.merge(strikers, avg_fdr_df, on='team', how='left')
+    strikers['avg_next_3_fdr'] = strikers['avg_next_3_fdr'].fillna(3.0)
     
     # 6. APPLY THE ALGORITHM
-    # Calculate the composite score: xG penalized by fixture difficulty
-    strikers['forecast_score'] = strikers['expected_goals'] / strikers['avg_next_3_fdr']
+    # Calculate the composite score using our Pytest-approved algorithm
+    strikers['forecast_score'] = strikers.apply(
+        lambda row: calculate_striker_score(
+            recent_form=float(row['form']),
+            total_points=int(row['total_points']),
+            next_match_is_home=True,  # baseline assuming home match for now
+            avg_fdr=float(row['avg_next_3_fdr'])
+        ), axis=1
+    )
     
     # 7. Sort by our new predictive score!
     top_strikers = strikers.sort_values(by='forecast_score', ascending=False).head(10)
     
-    # Clean up the output to look professional
-    # (Rounding numbers to 2 decimal places for a cleaner UI)
-    top_strikers['expected_goals'] = top_strikers['expected_goals'].round(2)
-    top_strikers['avg_next_3_fdr'] = top_strikers['avg_next_3_fdr'].round(2)
-    top_strikers['forecast_score'] = top_strikers['forecast_score'].round(2)
+    # Clean up the output to match what the frontend expects
+    top_strikers = top_strikers.rename(columns={'web_name': 'name', 'form': 'recent_form'})
     
-    columns_to_keep = ['web_name', 'expected_goals', 'avg_next_3_fdr', 'forecast_score']
+    columns_to_keep = ['name', 'recent_form', 'total_points', 'forecast_score']
     clean_df = top_strikers[columns_to_keep]
     
     return clean_df.to_dict(orient="records")
