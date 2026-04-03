@@ -16,27 +16,28 @@ app.add_middleware(
 )
 
 # Use a TTL Cache to refresh the data periodically (e.g., max 100 items, expires after 300 seconds)
-route_cache = TTLCache(maxsize=100, ttl=3600)
+topform_cache = TTLCache(maxsize=100, ttl=3600)
+injured_cache = TTLCache(maxsize=100, ttl=3600)
+striker_cache = TTLCache(maxsize=100, ttl=3600)
 
 @app.get("/")
-@cached(cache=route_cache)
 def root():
     return {"message": "Football Analysis API is running and auto deploying updates!"}
 
 @app.get("/players/top-form")
-@cached(cache=route_cache)
+@cached(cache=topform_cache)
 def top_performers():
     data = get_top_in_form_players()
     return {"top_5_players_inform": data}
 
 @app.get("/players/injured")
-@cached(cache=route_cache)
+@cached(cache=injured_cache)
 def injured_players():
     data = get_injured_players()
     return {"injured_players": data}
 
 @app.get("/strikers/forecast")
-@cached(cache=route_cache)
+@cached(cache=striker_cache)
 def get_striker_forecasts():
     data = get_strikers_forecast()
     return {"top_strikers": data}
