@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from cachetools import cached, TTLCache
-from app.analyzer import get_strikers_forecast, get_top_in_form_players, get_injured_players, calculate_striker_score
+from app.analyzer import get_strikers_forecast, get_top_in_form_players, get_injured_players
 
 
 app = FastAPI(title="Football Performance Forecaster")
@@ -16,7 +16,7 @@ app.add_middleware(
 )
 
 # Use a TTL Cache to refresh the data periodically (e.g., max 100 items, expires after 300 seconds)
-route_cache = TTLCache(maxsize=100, ttl=300)
+route_cache = TTLCache(maxsize=100, ttl=3600)
 
 @app.get("/")
 @cached(cache=route_cache)
@@ -25,18 +25,18 @@ def root():
 
 @app.get("/players/top-form")
 @cached(cache=route_cache)
-async def top_performers():
+def top_performers():
     data = get_top_in_form_players()
     return {"top_5_players_inform": data}
 
 @app.get("/players/injured")
 @cached(cache=route_cache)
-async def injured_players():
+def injured_players():
     data = get_injured_players()
     return {"injured_players": data}
 
 @app.get("/strikers/forecast")
 @cached(cache=route_cache)
-async def get_striker_forecasts():
+def get_striker_forecasts():
     data = get_strikers_forecast()
     return {"top_strikers": data}
