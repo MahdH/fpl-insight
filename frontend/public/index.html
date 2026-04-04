@@ -1,215 +1,278 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPL Insight Dashboard</title>
-    <style>
-        /* Modern Dashboard CSS Grid */
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f3f4f6;
-            padding: 2rem;
-            color: #1f2937;
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Transfer Suggestions Home</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b", "accent-blue": "#00f2ff", "accent-pink": "#ff00e5",
+                        "background-dark": "#0a0c0b", "card-dark": "#161b18", "border-dark": "#242a26", "text-muted": "#88998e",
+                    }, fontFamily: { "display": ["Lexend"] }, borderRadius: { "2xl": "1.25rem", "3xl": "1.75rem", }
+                }
+            },
         }
-
-        .header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        /* This creates the side-by-side layout */
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 1.5rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        h2 {
-            font-size: 1.25rem;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 0.5rem;
-            margin-top: 0;
-        }
-
-        button {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-            margin-bottom: 1rem;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background: #2563eb;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        th,
-        td {
-            text-align: left;
-            padding: 8px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        th {
-            background-color: #f9fafb;
-        }
-
-        .score {
-            font-weight: bold;
-            color: #10b981;
-        }
-
-        /* Green text for the forecast score */
-        .injured {
-            color: #ef4444;
-            font-weight: bold;
-        }
+    </script>
+    <style type="text/tailwindcss">
+        body { background-color: theme('colors.background-dark'); }
+        .bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: minmax(160px, auto); gap: 12px; }
+        .bento-featured { grid-column: span 2; grid-row: span 3; }
+        .bento-wide { grid-column: span 2; }
     </style>
 </head>
 
-<body>
-    <div class="header">
-        <h1>📊 FPL Insight Engine</h1>
-        <p>Live forecasting and data analytics</p>
-    </div>
+<body class="font-display text-slate-100 min-h-screen pb-28">
+    <header
+        class="sticky top-0 z-30 flex items-center bg-background-dark/80 backdrop-blur-xl px-6 py-5 justify-between border-b border-border-dark">
+        <div class="flex items-center gap-3">
+            <div class="size-9 rounded-full bg-gradient-to-tr from-primary to-accent-blue p-[2px]">
+                <div class="w-full h-full rounded-full bg-background-dark flex items-center justify-center">
+                    <span class="material-symbols-outlined text-sm text-primary">analytics</span>
+                </div>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight">Insight<span class="text-primary">.</span></h1>
+        </div>
+    </header>
 
-    <div class="dashboard">
+    <main class="p-4 max-w-md mx-auto">
+        <div class="bento-grid">
 
-        <div class="card">
-            <h2>⭐ Top 3 Performers</h2>
-            <button onclick="fetchTopPerformers()">Load Performers</button>
-            <div id="performers-results">
-                <p style="color: #6b7280;">Waiting for data...</p>
+            <div
+                class="bento-featured relative overflow-hidden rounded-3xl bg-card-dark border border-border-dark flex flex-col">
+                <div class="relative flex-1 overflow-hidden group">
+                    <div id="pick-0-bg"
+                        class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110 opacity-60">
+                    </div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-card-dark via-card-dark/40 to-transparent"></div>
+                    <div class="absolute top-4 left-4 flex flex-col gap-1">
+                        <span
+                            class="px-3 py-1 rounded-full bg-primary/20 backdrop-blur-md border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-widest">Must
+                            Have</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 w-full p-6">
+                        <div class="flex flex-col gap-0.5 mb-3">
+                            <span class="text-primary text-xs font-bold uppercase tracking-widest">Top Pick</span>
+                            <h2 id="pick-0-name" class="text-3xl font-bold">Loading...</h2>
+                            <p id="pick-0-sub" class="text-text-muted text-sm">Loading...</p>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 pt-3 border-t border-white/10">
+                            <div>
+                                <p class="text-[10px] text-text-muted uppercase font-bold">Projected</p>
+                                <p id="pick-0-proj" class="text-lg font-bold text-accent-blue">--</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-text-muted uppercase font-bold">Algorithm</p>
+                                <p id="pick-0-index" class="text-lg font-bold text-primary">--</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-text-muted uppercase font-bold">Ownership</p>
+                                <p id="pick-0-own" class="text-lg font-bold text-white">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-background-dark/40 border-t border-border-dark p-4 grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2">
+                            <div id="pick-1-bg"
+                                class="size-6 rounded-full bg-cover bg-center border border-border-dark"></div>
+                            <div>
+                                <p id="pick-1-name" class="text-[11px] font-bold leading-tight">--</p>
+                                <p class="text-[9px] text-text-muted">FWD</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-[8px] text-text-muted uppercase font-bold">Score</p>
+                                <p id="pick-1-index" class="text-sm font-bold text-accent-blue leading-none">--</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 border-l border-border-dark pl-4">
+                        <div class="flex items-center gap-2">
+                            <div id="pick-2-bg"
+                                class="size-6 rounded-full bg-cover bg-center border border-border-dark"></div>
+                            <div>
+                                <p id="pick-2-name" class="text-[11px] font-bold leading-tight">--</p>
+                                <p class="text-[9px] text-text-muted">FWD</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-[8px] text-text-muted uppercase font-bold">Score</p>
+                                <p id="pick-2-index" class="text-sm font-bold text-accent-blue leading-none">--</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="rounded-3xl bg-card-dark border border-border-dark p-4 flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 size-24 bg-red-500/10 blur-2xl rounded-full"></div>
+                <div class="relative z-10">
+                    <div
+                        class="size-10 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center mb-4">
+                        <span class="material-symbols-outlined text-red-500">trending_down</span>
+                    </div>
+                    <h3 class="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Transfer Out</h3>
+                    <p id="risk-name" class="font-bold text-lg leading-tight">Scanning...</p>
+                    <p id="risk-reason" class="text-red-400 text-[11px] font-medium mt-1 w-full truncate">--</p>
+                </div>
+                <div class="mt-auto flex items-center gap-2">
+                    <div id="risk-bg" class="size-8 rounded-full bg-cover bg-center border border-border-dark"></div>
+                    <span id="risk-chance"
+                        class="text-[10px] font-bold text-red-500 uppercase tracking-tighter">--</span>
+                </div>
+            </div>
+
+            <div
+                class="rounded-3xl bg-card-dark border border-border-dark p-4 flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute -right-4 -top-4 size-24 bg-accent-blue/10 blur-2xl rounded-full"></div>
+                <div class="relative z-10">
+                    <div
+                        class="size-10 rounded-xl bg-accent-blue/20 border border-accent-blue/30 flex items-center justify-center mb-4">
+                        <span class="material-symbols-outlined text-accent-blue">event_upcoming</span>
+                    </div>
+                    <h3 class="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Target Fixture</h3>
+                    <p id="fixture-match" class="font-bold text-lg leading-tight">Loading...</p>
+                    <div id="fixture-dots" class="mt-2 flex gap-1">
+                    </div>
+                </div>
+                <p id="fixture-diff" class="text-[10px] text-primary font-bold uppercase mt-auto">--</p>
+            </div>
+
+            <div class="bento-wide rounded-3xl bg-card-dark border border-border-dark p-5">
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="font-bold text-lg tracking-tight">Top Performers</h3>
+                    <span
+                        class="text-[10px] font-bold text-primary uppercase border border-primary/30 px-2 py-0.5 rounded-full">LIVE</span>
+                </div>
+                <div id="performers-container" class="space-y-4">
+                    <p class="text-sm text-text-muted">Running performance algorithms...</p>
+                </div>
             </div>
         </div>
-
-        <div class="card">
-            <h2>🔮 Top 10 Strikers Forecast</h2>
-            <button onclick="fetchForecast()">Run AI Algorithm</button>
-            <div id="forecast-results">
-                <p style="color: #6b7280;">Waiting for data...</p>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>🏥 Live Injury Report</h2>
-            <button onclick="fetchInjuries()">Load Injuries</button>
-            <div id="injuries-results">
-                <p style="color: #6b7280;">Waiting for data...</p>
-            </div>
-        </div>
-
-    </div>
+    </main>
 
     <script>
-        const BASE_URL = "https://forecast-api-635659809820.northamerica-northeast2.run.app";
+        // Set this to your local Python server address. 
+        // When you deploy to Google Cloud, change this to your public Cloud Run URL!
+        const API_BASE_URL = "http://127.0.0.1:8000";
 
-        // YOUR TOP PERFORMERS FUNCTION
-        async function fetchTopPerformers() {
-            // Paste your existing fetch logic for the top 3 performers here!
-            const resultDiv = document.getElementById('performers-results');
-            resultDiv.innerHTML = "<p><i>Reavling Top Performers...</i></p>";
+        async function fetchDashboardData() {
             try {
-                const response = await fetch(`${BASE_URL}/players/top-form`);
-                const data = await response.json();
-                const players = data.top_5_players_inform;
+                // We use Promise.all to fetch all 4 endpoints at the exact same time, vastly speeding up page load
+                const [picksRes, riskRes, fixtureRes, perfRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/api/top-picks`),
+                    fetch(`${API_BASE_URL}/api/risk-alerts`),
+                    fetch(`${API_BASE_URL}/api/target-fixture`),
+                    fetch(`${API_BASE_URL}/api/top-performers`)
+                ]);
 
-                console.log("Here is what Python sent back:", data);
+                const picks = await picksRes.json();
+                const risk = await riskRes.json();
+                const fixture = await fixtureRes.json();
+                const perf = await perfRes.json();
 
-                let html = `<table><tr><th>Name</th><th>Points</th><th>Form</th></tr>`;
-                players.forEach(p => {
-                    html += `<tr>
-                        <td><strong>${p.web_name}</strong></td>
-                        <td>${p.total_points}</td>
-                        <td>${p.form}</td>
-                    </tr>`;
-                });
-                html += "</table>";
-                resultDiv.innerHTML = html;
-            } catch (err) {
-                resultDiv.innerHTML = `<p style="color:red;">Error connecting to API.</p>`;
-                console.error(err);
+                populateTopPicks(picks.top_picks);
+                populateRiskAlert(risk.alert);
+                populateFixture(fixture.target_fixture);
+                populatePerformers(perf.top_performers);
+
+            } catch (error) {
+                console.error("Dashboard Engine Error:", error);
             }
         }
 
-        // STRIKER FORECAST FUNCTION
-        async function fetchForecast() {
-            const resultsDiv = document.getElementById('forecast-results');
-            resultsDiv.innerHTML = "<p>Crunching the numbers...</p>";
-            try {
-                // Append the exact route to the BASE_URL
-                const response = await fetch(`${BASE_URL}/strikers/forecast`);
-                const data = await response.json();
-                const strikers = data.top_strikers;
+        function populateTopPicks(data) {
+            if (!data || data.length < 3) return;
 
-                console.log("Here is what Python sent back:", data);
+            // #1 Pick (Haaland card)
+            document.getElementById('pick-0-bg').style.backgroundImage = `url('${data[0].image_url}')`;
+            document.getElementById('pick-0-name').textContent = data[0].name;
+            document.getElementById('pick-0-sub').textContent = `FWD • ${data[0].price}`;
+            document.getElementById('pick-0-proj').textContent = `${data[0].projected_points}pts`;
+            document.getElementById('pick-0-index').textContent = data[0].custom_index;
+            document.getElementById('pick-0-own').textContent = `${data[0].ownership_percent}%`;
 
-                let html = `<table><tr><th>Name</th><th>Form</th><th>Points</th><th>Score</th></tr>`;
-                strikers.forEach(p => {
-                    html += `<tr>
-                        <td><strong>${p.name}</strong></td>
-                        <td>${p.recent_form}</td>
-                        <td>${p.total_points}</td>
-                        <td class="score">${p.forecast_score}</td>
-                    </tr>`;
-                });
-                html += "</table>";
-                resultsDiv.innerHTML = html;
-            } catch (err) {
-                resultsDiv.innerHTML = `<p style="color:red;">Error connecting to API.</p>`;
-                console.error(err);
-            }
+            // #2 Pick
+            document.getElementById('pick-1-bg').style.backgroundImage = `url('${data[1].image_url}')`;
+            document.getElementById('pick-1-name').textContent = data[1].name;
+            document.getElementById('pick-1-index').textContent = data[1].custom_index;
+
+            // #3 Pick
+            document.getElementById('pick-2-bg').style.backgroundImage = `url('${data[2].image_url}')`;
+            document.getElementById('pick-2-name').textContent = data[2].name;
+            document.getElementById('pick-2-index').textContent = data[2].custom_index;
         }
 
-        // --- 3. INJURIES FUNCTION ---
-        async function fetchInjuries() {
-            const resultsDiv = document.getElementById('injuries-results');
-            resultsDiv.innerHTML = "<p>Loading...</p>";
-            try {
-                const response = await fetch(`${BASE_URL}/players/injured`);
-                const data = await response.json();
-                const players = data.injured_players;
-
-                console.log("Here is what Python sent back:", data);
-
-                let html = `<table><tr><th>Name</th><th>Status</th></tr>`;
-
-                // .slice(0, 10) prevents the card from getting 300 rows long!
-                players.slice(0, 10).forEach(p => {
-                    html += `<tr>
-                        <td><strong>${p.web_name}</strong></td>
-                        <td class="injured">${p.status.toUpperCase()}</td>
-                    </tr>`;
-                });
-                html += "</table><p style='text-align:center; font-size:0.8rem; color:gray; margin-top:10px;'>Showing top 10</p>";
-                resultsDiv.innerHTML = html;
-            } catch (err) {
-                resultsDiv.innerHTML = `<p style="color:red;">Error connecting to API.</p>`;
-                console.error(err);
+        function populateRiskAlert(data) {
+            if (!data) {
+                document.getElementById('risk-name').textContent = "No Alerts";
+                document.getElementById('risk-reason').textContent = "Squad is healthy";
+                return;
             }
+            document.getElementById('risk-name').textContent = data.name;
+            document.getElementById('risk-reason').textContent = data.reason;
+            document.getElementById('risk-chance').textContent = `Chance: ${data.chance}`;
+            document.getElementById('risk-bg').style.backgroundImage = `url('${data.image_url}')`;
         }
+
+        function populateFixture(data) {
+            if (!data) return;
+            document.getElementById('fixture-match').textContent = data.match;
+            document.getElementById('fixture-diff').textContent = `Difficulty: ${data.difficulty}/5`;
+
+            // Build the visual difficulty dots
+            let dotsHtml = "";
+            for (let i = 0; i < data.difficulty; i++) dotsHtml += `<div class="h-1.5 w-6 rounded-full bg-primary"></div>`;
+            for (let i = 0; i < (5 - data.difficulty); i++) dotsHtml += `<div class="h-1.5 w-6 rounded-full bg-border-dark"></div>`;
+            document.getElementById('fixture-dots').innerHTML = dotsHtml;
+        }
+
+        function populatePerformers(data) {
+            if (!data) return;
+            const container = document.getElementById('performers-container');
+            container.innerHTML = ""; // Clear loading text
+
+            data.forEach(player => {
+                const rankColor = player.rank === 1 ? "text-primary" : "text-text-muted";
+                container.innerHTML += `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <div class="size-11 rounded-full bg-cover bg-center border-2 border-border-dark" style="background-image: url('${player.image_url}');"></div>
+                            <div class="absolute -bottom-1 -right-1 size-5 bg-background-dark rounded-full flex items-center justify-center border border-border-dark">
+                                <span class="text-[10px] font-bold ${rankColor}">${player.rank}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold">${player.name}</p>
+                            <p class="text-[11px] text-text-muted">${player.team}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-white">${player.performance_index}</p>
+                        <p class="text-[10px] text-text-muted uppercase">Index</p>
+                    </div>
+                </div>`;
+            });
+        }
+
+        // Boot up the engine as soon as the HTML loads
+        document.addEventListener("DOMContentLoaded", fetchDashboardData);
     </script>
 </body>
 
