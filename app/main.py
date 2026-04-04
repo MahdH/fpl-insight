@@ -1,3 +1,4 @@
+import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from cachetools import cached, TTLCache
