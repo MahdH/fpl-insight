@@ -1,59 +1,66 @@
 import pandas as pd
 import pytest
-from app.analyzer import calculate_striker_score
+from app.main import calculate_native_striker_index, calculate_native_performer_index
 
-def test_elite_striker_easy_home_game():
-    # Testing a highly in-form striker at home against easy an opponent (e.g., Haaland vs Sheffield Utd)
-    score = calculate_striker_score(
-        recent_form=8.5, 
-        total_points=180, 
-        next_match_is_home=True, 
-        avg_fdr=2.0
-    )
-    # Form(34) + FDR(22.5) + Pedigree(14.4) + Venue(10) = 80.9
-    assert score == 80.9
+# STRIKER INDEX TESTS
 
-def test_average_striker_hard_away_game():
-    # Testing a mid-tier striker away against tough opposition (e.g., Solanke away at Arsenal)
-    score = calculate_striker_score(
-        recent_form=4.0, 
-        total_points=90, 
-        next_match_is_home=False, 
-        avg_fdr=4.5
-    )
-    # Form(16) + FDR(3.75) + Pedigree(7.2) + Venue(5) = 31.95
-    assert score == 31.95
+def test_striker_perfect_scenario():
+    """Testing the 'Happy Path' for a flawless striker at home."""
+    # 1. ARRANGE: Perfect form, max points, easiest fixture, elite home attack
+    test_player = {"form": "10.0", "total_points": 250}
+    test_match = {"difficulty": 1, "is_home": True}
+    test_team = {"strength_attack_home": 1300} # 1250+ grants the full +5 bonus
 
-def test_form_cap():
-    # Ensuring a crazy form streak doesn't break the scoring weight (cap at 10.0)
-    score = calculate_striker_score(
-        recent_form=15.0, # Unrealistically high
-        total_points=100, 
-        next_match_is_home=True, 
-        avg_fdr=3.0
-    )
-    # The form score should cap at 40, not go over.
-    assert score <= 100.0
+    # 2. ACT
+    score = calculate_native_striker_index(test_player, test_match, test_team)
 
-def test_forecast_algorithm():
-    # 1. Create dummy data (Fake Strikers)
-    # Haaland has high xG (4.0) and an easy schedule (2.0 FDR)
-    # Watkins has lower xG (3.0) and a hard schedule (3.0 FDR)
-    data = {
-        'web_name': ['Haaland', 'Watkins'],
-        'expected_goals': [4.0, 3.0],
-        'avg_next_3_fdr': [2.0, 3.0]
-    }
-    df = pd.DataFrame(data)
-    
-    # 2. Run your exact algorithm
-    df['forecast_score'] = df['expected_goals'] / df['avg_next_3_fdr']
-    
-    # 3. The Assertions (The Quality Check)
-    # Pytest will check if the computer's math matches reality.
-    
-    # Haaland: 4.0 / 2.0 SHOULD equal 2.0
-    assert df.loc[0, 'forecast_score'] == 2.0
-    
-    # Watkins: 3.0 / 3.0 SHOULD equal 1.0
-    assert df.loc[1, 'forecast_score'] == 1.0
+    # 3. ASSERT: Form(40) + Pedigree(30) + Difficulty(25) + Bonus(5) = 100.0
+    assert score == 100.0
+
+
+def test_striker_safeguard_caps():
+    """Testing the Edge Case: Does the math break if a player exceeds the max limits?"""
+    # 1. ARRANGE: Impossible stats (form 15.0, 300 points) in an away game
+    test_player = {"form": "15.0", "total_points": 300}
+    test_match = {"difficulty": 3, "is_home": False}
+    test_team = {"strength_attack_away": 1050} # Below 1150, so +0 bonus
+
+    # 2. ACT
+    score = calculate_native_striker_index(test_player, test_match, test_team)
+
+    # 3. ASSERT: 
+    # Form capped at 10.0 -> 40 points
+    # Points capped at 250 -> 30 points
+    # Difficulty 3 -> 12.5 points
+    # Bonus -> 0 points
+    # Expected: 40 + 30 + 12.5 = 82.5
+    assert score == 82.5
+
+# PERFORMER INDEX TESTS
+
+def test_performer_minutes_safeguard():
+    """Testing the Edge Case: Does a sub with elite stats get filtered out?"""
+    # 1. ARRANGE: Amazing stats, but only played 45 minutes total this season
+    test_player = {"minutes": 45, "ict_index": "6.0", "bps": 12}
+    test_match = {"is_home": True}
+    test_team = {"strength_overall_home": 1300}
+
+    # 2. ACT
+    score = calculate_native_performer_index(test_player, test_match, test_team)
+
+    # 3. ASSERT: The <90 minutes safeguard should trigger and return 0.0 immediately
+    assert score == 0.0
+
+
+def test_performer_elite_dominance():
+    """Testing the 'Happy Path' for an elite performer."""
+    # 1. ARRANGE: Played exactly 90 mins, elite ICT (12.0), elite BPS (25.0)
+    test_player = {"minutes": 90, "ict_index": "12.0", "bps": 25}
+    test_match = {"is_home": True}
+    test_team = {"strength_overall_home": 1250} # Grants +5 bonus
+
+    # 2. ACT
+    score = calculate_native_performer_index(test_player, test_match, test_team)
+
+    # 3. ASSERT: ICT(50) + BPS(45) + Bonus(5) = 100.0
+    assert score == 100.0
