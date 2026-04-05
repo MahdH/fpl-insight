@@ -16,6 +16,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 def serve_dashboard():
     return FileResponse("static/index.html")
 
+@app.get("/my-team")
+def serve_my_team():
+    return FileResponse("static/my-team.html")
+
 # Tells API to accept requests from local HTML file
 app.add_middleware(
     CORSMiddleware,
