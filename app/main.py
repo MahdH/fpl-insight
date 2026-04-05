@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 app = FastAPI(title="Football Performance Forecaster")
 
 # Mount the static folder
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Create the route for the main URL ("/")
 @app.get("/")
