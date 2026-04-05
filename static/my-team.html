@@ -63,7 +63,7 @@
   <main class="max-w-4xl mx-auto px-4 py-6">
 
     <div class="mb-6 flex gap-3">
-      <input type="number" id="manager-id-input" placeholder="Enter FPL Team ID (e.g., 123456)"
+      <input type="number" id="manager-id-input" placeholder="Enter FPL Team ID (e.g., 43024)"
         class="flex-1 bg-surface-container rounded-xl px-4 py-3 text-sm text-white border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary outline-none">
       <button onclick="loadManagerTeam()"
         class="bg-primary text-white font-bold px-6 py-3 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center gap-2">
@@ -94,22 +94,34 @@
       <div id="pitch-fwd" class="relative z-10 flex justify-center gap-8 md:gap-16 pt-4 min-h-[100px]">
         <p class="text-white/50 text-sm my-auto">Enter ID to load Strikers</p>
       </div>
-
       <div id="pitch-mid" class="relative z-10 flex justify-around px-4 min-h-[100px]"></div>
-
       <div id="pitch-def" class="relative z-10 flex justify-around px-2 min-h-[100px]"></div>
-
       <div id="pitch-gk" class="relative z-10 flex justify-center pb-4 min-h-[100px]"></div>
     </section>
 
-    <section class="bg-surface-container rounded-3xl p-6">
+    <section class="bg-surface-container rounded-3xl p-6 mb-8">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-black text-on-surface uppercase tracking-tight">The Bench</h3>
         <span
           class="px-2 py-1 bg-surface-container-high rounded-full text-[10px] font-bold text-on-surface-variant uppercase">Substitutes</span>
       </div>
       <div id="bench-container" class="grid grid-cols-4 gap-2 md:gap-4">
-        <p class="text-on-surface-variant text-sm col-span-4">Enter ID to load bench...</p>
+        <p class="text-on-surface-variant text-sm col-span-4">Waiting for squad data...</p>
+      </div>
+    </section>
+
+    <section class="bg-surface-container rounded-3xl p-6 relative overflow-hidden border border-[#13ec5b]/20">
+      <div class="absolute -right-10 -top-10 size-40 bg-[#13ec5b]/10 blur-3xl rounded-full pointer-events-none"></div>
+
+      <div class="flex items-center justify-between mb-5 relative z-10">
+        <h3 class="text-lg font-black text-on-surface uppercase tracking-tight">AI Targets</h3>
+        <span
+          class="px-2 py-1 bg-[#13ec5b]/20 text-[#13ec5b] border border-[#13ec5b]/30 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+          <span class="material-symbols-outlined text-[12px]">auto_awesome</span> Recommended
+        </span>
+      </div>
+      <div id="suggestions-container" class="grid grid-cols-1 md:grid-cols-3 gap-3 relative z-10">
+        <p class="text-on-surface-variant text-sm col-span-3">Enter ID to scan the transfer market...</p>
       </div>
     </section>
   </main>
@@ -137,52 +149,57 @@
         return;
       }
 
-      // Set loading state
+      // 1. Set all sections to a loading state
       document.getElementById('pitch-fwd').innerHTML = '';
       document.getElementById('pitch-mid').innerHTML = '<p class="text-white/80 font-bold text-center w-full mt-4">Fetching Squad Data...</p>';
       document.getElementById('pitch-def').innerHTML = '';
       document.getElementById('pitch-gk').innerHTML = '';
       document.getElementById('bench-container').innerHTML = '';
+      document.getElementById('suggestions-container').innerHTML = '<p class="text-[#13ec5b] font-bold text-sm w-full">Running Set Difference Algorithm...</p>';
       document.getElementById('team-id-display').textContent = "...";
 
       try {
-        // Fetch from our Python backend! (If running locally, it defaults to the same host)
-        const response = await fetch(`/api/my-team/${managerId}`);
-        const data = await response.json();
+        // 2. The Asynchronous Handshake: Fetch BOTH endpoints concurrently
+        const [teamRes, suggestionsRes] = await Promise.all([
+          fetch(`/api/my-team/${managerId}`),
+          fetch(`/api/transfer-suggestions/${managerId}`)
+        ]);
 
-        if (data.error) {
-          throw new Error(data.error);
+        const teamData = await teamRes.json();
+        const suggestionsData = await suggestionsRes.json();
+
+        if (teamData.error) throw new Error(teamData.error);
+
+        // 3. Populate Header
+        document.getElementById('gw-label').textContent = `Game Week ${teamData.gameweek}`;
+        document.getElementById('team-id-display').textContent = teamData.manager_id;
+
+        // 4. Populate Pitch (Sort by position)
+        const starters = teamData.squad.starting_xi;
+        document.getElementById('pitch-fwd').innerHTML = starters.filter(p => p.position === 4).map(p => createPlayerCard(p)).join('');
+        document.getElementById('pitch-mid').innerHTML = starters.filter(p => p.position === 3).map(p => createPlayerCard(p)).join('');
+        document.getElementById('pitch-def').innerHTML = starters.filter(p => p.position === 2).map(p => createPlayerCard(p)).join('');
+        document.getElementById('pitch-gk').innerHTML = starters.filter(p => p.position === 1).map(p => createPlayerCard(p)).join('');
+
+        // 5. Populate Bench
+        document.getElementById('bench-container').innerHTML = teamData.squad.bench.map(p => createBenchCard(p)).join('');
+
+        // 6. Populate AI Suggestions
+        if (suggestionsData.suggestions && suggestionsData.suggestions.length > 0) {
+          document.getElementById('suggestions-container').innerHTML = suggestionsData.suggestions.map(p => createSuggestionCard(p)).join('');
+        } else {
+          document.getElementById('suggestions-container').innerHTML = '<p class="text-on-surface-variant text-sm col-span-3">No suggestions found.</p>';
         }
-
-        // Update Header
-        document.getElementById('gw-label').textContent = `Game Week ${data.gameweek}`;
-        document.getElementById('team-id-display').textContent = data.manager_id;
-
-        // Sort players by position (1=GK, 2=DEF, 3=MID, 4=FWD)
-        const starters = data.squad.starting_xi;
-        const fwds = starters.filter(p => p.position === 4);
-        const mids = starters.filter(p => p.position === 3);
-        const defs = starters.filter(p => p.position === 2);
-        const gks = starters.filter(p => p.position === 1);
-
-        // Inject into Pitch
-        document.getElementById('pitch-fwd').innerHTML = fwds.map(p => createPlayerCard(p)).join('');
-        document.getElementById('pitch-mid').innerHTML = mids.map(p => createPlayerCard(p)).join('');
-        document.getElementById('pitch-def').innerHTML = defs.map(p => createPlayerCard(p)).join('');
-        document.getElementById('pitch-gk').innerHTML = gks.map(p => createPlayerCard(p)).join('');
-
-        // Inject into Bench
-        document.getElementById('bench-container').innerHTML = data.squad.bench.map(p => createBenchCard(p)).join('');
 
       } catch (error) {
         console.error(error);
         alert("Could not load team. Check the ID and try again.");
         document.getElementById('pitch-mid').innerHTML = '<p class="text-red-300 font-bold text-center w-full mt-4">Error loading team.</p>';
+        document.getElementById('suggestions-container').innerHTML = '<p class="text-red-300 text-sm">Engine failed to run.</p>';
       }
     }
 
     function createPlayerCard(player) {
-      // Check for Captain/Vice-Captain Badges
       let badgeHtml = '';
       if (player.is_captain) {
         badgeHtml = `<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-pink-600 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">C</div>`;
@@ -204,9 +221,7 @@
     }
 
     function createBenchCard(player) {
-      // Convert numerical position to text for the bench UI
       const posMap = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" };
-
       return `
             <div class="bg-surface-container-highest p-2 rounded-2xl flex flex-col items-center shadow-sm">
                 <div class="w-10 h-10 bg-surface-container-low rounded-full overflow-hidden mb-2 border-2 border-outline-variant/10">
@@ -214,6 +229,25 @@
                 </div>
                 <span class="text-[9px] font-black uppercase text-on-surface truncate w-full text-center">${player.name}</span>
                 <span class="text-[8px] font-medium text-on-surface-variant">${posMap[player.position]} • ${player.price}</span>
+            </div>`;
+    }
+
+    // NEW: Function to render the AI target cards
+    function createSuggestionCard(player) {
+      const posMap = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" };
+      return `
+            <div class="bg-surface-container-highest p-3 rounded-2xl flex items-center gap-3 shadow-sm border border-outline-variant/10 hover:border-[#13ec5b]/50 transition-colors">
+                <div class="w-12 h-12 bg-surface-container-low rounded-full overflow-hidden border-2 border-[#13ec5b]/30 shrink-0">
+                    <img class="w-full h-full object-cover" src="${player.image_url}" alt="${player.name}" onerror="this.src='https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png'"/>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-black uppercase text-on-surface truncate">${player.name}</p>
+                    <p class="text-[10px] font-medium text-on-surface-variant">${posMap[player.position]} • ${player.price}</p>
+                </div>
+                <div class="text-right shrink-0">
+                    <p class="text-sm font-bold text-[#13ec5b]">${player.suggestion_score}</p>
+                    <p class="text-[8px] text-on-surface-variant uppercase font-bold tracking-widest">Index</p>
+                </div>
             </div>`;
     }
   </script>

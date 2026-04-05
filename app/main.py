@@ -107,6 +107,86 @@ def get_manager_team(manager_id: int):
         }
     }
 
+@app.get("/api/transfer-suggestions/{manager_id}")
+def get_transfer_suggestions(manager_id: int):
+    # 1. Grab databases
+    master_data = fetch_master_fpl_data()
+    fixtures = fetch_upcoming_fixtures()
+    all_players = master_data["elements"]
+    
+    # 2. Figure out the current Gameweek
+    current_gw = 1
+    for event in master_data["events"]:
+        if event["is_current"]:
+            current_gw = event["id"]
+            break
+            
+    # 3. Fetch the Manager's Current Squad
+    manager_url = f"https://fantasy.premierleague.com/api/entry/{manager_id}/event/{current_gw}/picks/"
+    response = requests.get(manager_url)
+    
+    if response.status_code != 200:
+        return {"error": "Manager ID not found."}
+        
+    # 4. THE SET DIFFERENCE (Filter out players they already own)
+    # We use a Python 'set' for O(1) lightning-fast lookups
+    owned_player_ids = {pick["element"] for pick in response.json().get("picks", [])}
+    
+    # Create our new pool of available free agents
+    available_players = [p for p in all_players if p["id"] not in owned_player_ids]
+    
+    # 5. Set up the Team Data and Fixtures for the Algorithm
+    team_lookup = {team["id"]: team for team in master_data["teams"]}
+    upcoming = [f for f in fixtures if f["event"] is not None]
+    
+    if not upcoming:
+        return {"suggestions": []}
+        
+    next_gw = upcoming[0]["event"]
+    next_gw_matches = [f for f in upcoming if f["event"] == next_gw]
+    
+    # 6. Run the Algorithm on the Available Players
+    for player in available_players:
+        team_id = player["team"]
+        player_team_data = team_lookup.get(team_id, {})
+        
+        is_home = True
+        for match in next_gw_matches:
+            if match["team_h"] == team_id:
+                is_home = True
+                break
+            elif match["team_a"] == team_id:
+                is_home = False
+                break
+                
+        next_match_data = {"is_home": is_home}
+        
+        # We use your 'Top Performer' pure dominance index here!
+        player["suggestion_score"] = calculate_native_performer_index(
+            player=player, 
+            next_match=next_match_data, 
+            team_data=player_team_data
+        )
+        
+    # 7. Sort the available pool by YOUR proprietary score
+    available_players.sort(key=lambda x: x["suggestion_score"], reverse=True)
+    
+    # 8. Grab the Top 3 and format
+    top_3 = available_players[:3]
+    formatted_suggestions = []
+    
+    for player in top_3:
+        formatted_suggestions.append({
+            "id": player["id"],
+            "name": f"{player['first_name']} {player['second_name']}",
+            "position": player["element_type"], 
+            "price": f"£{player['now_cost'] / 10:.1f}m",
+            "suggestion_score": player["suggestion_score"],
+            "image_url": get_player_image_url(player["photo"].replace(".jpg", ""))
+        })
+        
+    return {"suggestions": formatted_suggestions}
+
 @cached(cache=master_db_cache)
 def fetch_master_fpl_data():
     """Downloads the entire FPL database once an hour."""
