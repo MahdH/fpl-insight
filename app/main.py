@@ -44,6 +44,69 @@ def root():
 """
 #----------------------------new endpoints----------------------------
 
+@app.get("/api/my-team/{manager_id}")
+def get_manager_team(manager_id: int):
+    # 1. Grab our instant master database
+    master_data = fetch_master_fpl_data()
+    all_players = {p["id"]: p for p in master_data["elements"]} # Create a fast lookup dictionary
+    
+    # 2. Find the current Gameweek
+    # We scan the 'events' list to find the one marked 'is_current'
+    current_gw = 1 # Fallback
+    for event in master_data["events"]:
+        if event["is_current"]:
+            current_gw = event["id"]
+            break
+            
+    # 3. Fetch the specific manager's team for this Gameweek
+    manager_url = f"https://fantasy.premierleague.com/api/entry/{manager_id}/event/{current_gw}/picks/"
+    response = requests.get(manager_url)
+    
+    # Safeguard: If the user types an invalid ID, return an error safely
+    if response.status_code != 200:
+        return {"error": "Manager ID not found or invalid."}
+        
+    manager_data = response.json()
+    picks = manager_data.get("picks", [])
+    
+    # 4. Hydrate the data (Match the IDs to the real player info)
+    starting_xi = []
+    bench = []
+    
+    for pick in picks:
+        player_id = pick["element"]
+        player_info = all_players.get(player_id)
+        
+        if not player_info:
+            continue
+            
+        # Format the data for your frontend pitch UI
+        formatted_player = {
+            "name": player_info["web_name"],
+            "position": player_info["element_type"], # 1=GK, 2=DEF, 3=MID, 4=FWD
+            "price": f"£{player_info['now_cost'] / 10:.1f}m",
+            "is_captain": pick["is_captain"],
+            "is_vice_captain": pick["is_vice_captain"],
+            "multiplier": pick["multiplier"], # If multiplier is 0, they are on the bench
+            "image_url": get_player_image_url(player_info["photo"].replace(".jpg", ""))
+        }
+        
+        # FPL uses 'multiplier' to indicate if a player is starting (1 or 2) or benched (0)
+        if pick["multiplier"] > 0:
+            starting_xi.append(formatted_player)
+        else:
+            bench.append(formatted_player)
+            
+    # 5. Send the perfectly formatted squad to your HTML
+    return {
+        "manager_id": manager_id,
+        "gameweek": current_gw,
+        "squad": {
+            "starting_xi": starting_xi,
+            "bench": bench
+        }
+    }
+
 @cached(cache=master_db_cache)
 def fetch_master_fpl_data():
     """Downloads the entire FPL database once an hour."""
