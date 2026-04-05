@@ -3,9 +3,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from cachetools import cached, TTLCache
 from app.analyzer import get_strikers_forecast, get_top_in_form_players, get_injured_players, get_player_image_url
-
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 app = FastAPI(title="Football Performance Forecaster")
+
+# Mount the static folder
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Create the route for the main URL ("/")
+@app.get("/")
+def serve_dashboard():
+    return FileResponse("static/index.html")
 
 # Tells API to accept requests from local HTML file
 app.add_middleware(
@@ -24,11 +33,11 @@ striker_cache = TTLCache(maxsize=100, ttl=3600)
 risk_cache = TTLCache(maxsize=100, ttl=3600)
 fixture_cache = TTLCache(maxsize=5, ttl=3600)
 
-
+"""
 @app.get("/")
 def root():
     return {"message": "Football Analysis API is running and auto deploying updates!"}
-
+"""
 #----------------------------new endpoints----------------------------
 
 @cached(cache=master_db_cache)
