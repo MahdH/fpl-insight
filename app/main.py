@@ -400,7 +400,7 @@ def calculate_native_performer_index(player, next_match, team_data):
     def calculate_native_performer_index(player, next_3_matches):
     # 1. The Injury Filter
     chance_to_play = player.get("chance_of_playing_next_round")
-    if chance_to_play is not None and chance_to_play < 75:
+    if chance_to_play is not None and chance_to_play < 100:
         return 0.0
 
     # 2. Stricter Minutes Filter (Must play at least 4 full games)
