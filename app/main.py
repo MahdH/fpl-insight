@@ -142,30 +142,26 @@ def get_transfer_suggestions(manager_id: int):
     if not upcoming:
         return {"suggestions": []}
         
-    next_gw = upcoming[0]["event"]
-    next_gw_matches = [f for f in upcoming if f["event"] == next_gw]
+    team_next_3_diffs = {}
+    for t_id in team_lookup.keys():
+        diffs = []
+        for match in upcoming:
+            if match["team_h"] == t_id:
+                diffs.append(match["team_h_difficulty"])
+            elif match["team_a"] == t_id:
+                diffs.append(match["team_a_difficulty"])
+            if len(diffs) == 3:
+                break
+        team_next_3_diffs[t_id] = diffs
     
     # 6. Run the Algorithm on the Available Players
     for player in available_players:
         team_id = player["team"]
-        player_team_data = team_lookup.get(team_id, {})
-        
-        is_home = True
-        for match in next_gw_matches:
-            if match["team_h"] == team_id:
-                is_home = True
-                break
-            elif match["team_a"] == team_id:
-                is_home = False
-                break
-                
-        next_match_data = {"is_home": is_home}
         
         # We use your 'Top Performer' pure dominance index here!
         player["suggestion_score"] = calculate_native_performer_index(
             player=player, 
-            next_match=next_match_data, 
-            team_data=player_team_data
+            next_3_matches=team_next_3_diffs.get(team_id, [3, 3, 3])
         )
         
     # 7. Sort the available pool by YOUR proprietary score
@@ -401,49 +397,43 @@ def get_target_fixture():
 
 def calculate_native_performer_index(player, next_match, team_data):
 
-    minutes = float(player.get("minutes", 0))
-    
-    # Safeguard: If they haven't played at least one full game this season, they can't be a top performer
-    if minutes < 90:
+    def calculate_native_performer_index(player, next_3_matches):
+    # 1. The Injury Filter
+    chance_to_play = player.get("chance_of_playing_next_round")
+    if chance_to_play is not None and chance_to_play < 75:
         return 0.0
 
-    # 1. Underlying Threat Score (Max: 50)
-    # We convert cumulative ICT Index to a "Per 90 Minutes" metric. 
-    # An elite ICT/90 is around 12.0.
-    ict = float(player.get("ict_index", 0.0))
-    ict_per_90 = (ict / minutes) * 90.0
-    ict_score = min((ict_per_90 / 12.0) * 50.0, 50.0)
-    
-    # 2. Pitch Dominance Score (Max: 45)
-    # BPS (Bonus Points System) measures tackles, key passes, and accuracy.
-    # An elite BPS/90 is around 25.0.
-    bps = float(player.get("bps", 0.0))
-    bps_per_90 = (bps / minutes) * 90.0
-    bps_score = min((bps_per_90 / 25.0) * 45.0, 45.0)
-    
-    # 3. Dynamic Environment Bonus (Max: 5)
-    # Because Top Performers can be defenders or attackers, we use 'strength_overall'
-    is_home = next_match.get("is_home", True)
-    
-    if is_home:
-        team_strength = team_data.get("strength_overall_home", 1100)
-    else:
-        team_strength = team_data.get("strength_overall_away", 1100)
-        
-    dynamic_bonus = 0.0
-    
-    # Apply the FPL 1000-1350 scale thresholds
-    if team_strength >= 1150:  # "Good" team environment
-        dynamic_bonus += 2.0
-    if team_strength >= 1250:  # "Elite" team environment
-        dynamic_bonus += 3.0
-        
-    # 4. Final Aggregation
-    final_index = ict_score + bps_score + dynamic_bonus
-    
-    # Cap at 100 just in case a player is having a historic, record-breaking season
-    return round(min(final_index, 100.0), 1)
+    # 2. Stricter Minutes Filter (Must play at least 4 full games)
+    if player["minutes"] < 360:
+        return 0.0
 
+    # Calculate raw Per 90 stats
+    ict_per_90 = (player["ict_index"] / player["minutes"]) * 90
+    bps_per_90 = (player["bps"] / player["minutes"]) * 90
+
+    # 3. Calculate Fixture Score (Next 3 Matches)
+    # next_3_matches is a list of numbers, like [2, 3, 4]
+    total_difficulty = sum(next_3_matches)
+    
+    # Invert the score so easier games = more points
+    fixture_score = ((15 - total_difficulty) / 12.0) * 20.0
+    
+    # Make sure it stays between 0 and 20 points
+    fixture_score = max(min(fixture_score, 20.0), 0.0) 
+
+    # 4. REBALANCED SCORES
+    threat_score = min((ict_per_90 / 12.0) * 30, 30.0)
+    skill_score = min((bps_per_90 / 25.0) * 25, 25.0)
+    output_score = min((player["total_points"] / 200.0) * 25, 25.0)
+    
+    raw_index = threat_score + skill_score + output_score + fixture_score
+
+    # 5. The Reality Penalty (Minutes Smoothing)
+    minutes_penalty = min(player["minutes"] / 900.0, 1.0)
+    
+    final_index = raw_index * minutes_penalty
+
+    return round(final_index, 1)
 @app.get("/api/top-performers")
 def get_top_performers():
     # 1. Grab databases from memory
@@ -460,31 +450,26 @@ def get_top_performers():
     if not upcoming:
         return {"top_performers": []}
     
-    next_gw = upcoming[0]["event"]
-    next_gw_matches = [f for f in upcoming if f["event"] == next_gw]
+    team_next_3_diffs = {}
+    for t_id in team_lookup.keys():
+        diffs = []
+        for match in upcoming:
+            if match["team_h"] == t_id:
+                diffs.append(match["team_h_difficulty"])
+            elif match["team_a"] == t_id:
+                diffs.append(match["team_a_difficulty"])
+            if len(diffs) == 3:
+                break
+        team_next_3_diffs[t_id] = diffs
     
     # 4. Run the Proprietary Algorithm on EVERY player in the league
     for player in all_players:
         team_id = player["team"]
-        player_team_data = team_lookup.get(team_id, {})
-        
-        # Determine if their next match is home or away
-        is_home = True
-        for match in next_gw_matches:
-            if match["team_h"] == team_id:
-                is_home = True
-                break
-            elif match["team_a"] == team_id:
-                is_home = False
-                break
-                
-        next_match_data = {"is_home": is_home}
         
         # Calculate and attach the custom index
         player["performance_index"] = calculate_native_performer_index(
             player=player, 
-            next_match=next_match_data, 
-            team_data=player_team_data
+            next_3_matches=team_next_3_diffs.get(team_id, [3, 3, 3])
         )
         
     # 5. Sort by YOUR algorithm (Highest to Lowest)

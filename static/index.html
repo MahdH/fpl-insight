@@ -282,9 +282,7 @@
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
                         <div class="relative">
-                            <div class="size-11 rounded-full border-2 border-border-dark overflow-hidden bg-background-dark/50">
-                                <img src="${player.image_url}" onerror="this.src='https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png'" class="w-full h-full object-cover object-top" alt="${player.name}">
-                            </div>
+                            <div style="background-image: url('${player.image_url}')" class="size-11 rounded-full bg-cover bg-center border-2 border-border-dark bg-background-dark/50"></div>
                             <div class="absolute -bottom-1 -right-1 size-5 bg-background-dark rounded-full flex items-center justify-center border border-border-dark">
                                 <span class="text-[10px] font-bold ${rankColor}">${player.rank}</span>
                             </div>
