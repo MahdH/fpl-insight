@@ -60,9 +60,9 @@
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 py-6">
+  <main class="max-w-6xl mx-auto px-4 py-6 md:p-8">
 
-    <div class="mb-6 flex gap-3">
+    <div class="mb-6 flex gap-3 max-w-xl">
       <input type="number" id="manager-id-input" placeholder="Enter FPL Team ID (e.g., 43024)"
         class="flex-1 bg-surface-container rounded-xl px-4 py-3 text-sm text-white border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary outline-none">
       <button onclick="loadManagerTeam()"
@@ -83,62 +83,87 @@
       </div>
     </div>
 
-    <section
-      class="relative w-full aspect-[3/4] md:aspect-[4/3] pitch-gradient rounded-3xl overflow-hidden shadow-2xl mb-8 p-4 flex flex-col justify-between">
-      <div class="absolute inset-4 border-2 border-white/20 rounded-2xl pointer-events-none"></div>
-      <div class="absolute top-1/2 left-0 right-0 h-px bg-white/20 pointer-events-none"></div>
-      <div
-        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/20 rounded-full pointer-events-none">
+    <!-- Desktop Grid Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+      
+      <!-- Left Column: The Pitch (Spans 2 columns on desktop) -->
+      <div class="lg:col-span-2">
+        <section
+          class="relative w-full aspect-[3/4] md:aspect-[4/3] pitch-gradient rounded-3xl overflow-hidden shadow-2xl mb-8 p-4 flex flex-col justify-between">
+          <div class="absolute inset-4 border-2 border-white/20 rounded-2xl pointer-events-none"></div>
+          <div class="absolute top-1/2 left-0 right-0 h-px bg-white/20 pointer-events-none"></div>
+          <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/20 rounded-full pointer-events-none">
+          </div>
+
+          <div id="pitch-fwd" class="relative z-10 flex justify-center gap-8 md:gap-16 pt-4 h-[120px]">
+            <p class="text-white/50 text-sm my-auto">Enter ID to load Strikers</p>
+          </div>
+          <div id="pitch-mid" class="relative z-10 flex justify-around px-4 h-[120px]"></div>
+          <div id="pitch-def" class="relative z-10 flex justify-around px-2 h-[120px]"></div>
+          <div id="pitch-gk" class="relative z-10 flex justify-center pb-4 h-[120px]"></div>
+        </section>
       </div>
 
-      <div id="pitch-fwd" class="relative z-10 flex justify-center gap-8 md:gap-16 pt-4 min-h-[100px]">
-        <p class="text-white/50 text-sm my-auto">Enter ID to load Strikers</p>
-      </div>
-      <div id="pitch-mid" class="relative z-10 flex justify-around px-4 min-h-[100px]"></div>
-      <div id="pitch-def" class="relative z-10 flex justify-around px-2 min-h-[100px]"></div>
-      <div id="pitch-gk" class="relative z-10 flex justify-center pb-4 min-h-[100px]"></div>
-    </section>
+      <!-- Right Column: Sidebar (Bench & AI Targets) -->
+      <div class="flex flex-col gap-6 lg:gap-8">
+        <section class="bg-surface-container rounded-3xl p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-black text-on-surface uppercase tracking-tight">The Bench</h3>
+            <span
+              class="px-2 py-1 bg-surface-container-high rounded-full text-[10px] font-bold text-on-surface-variant uppercase">Substitutes</span>
+          </div>
+          <div id="bench-container" class="grid grid-cols-4 lg:grid-cols-2 gap-2 md:gap-4">
+            <p class="text-on-surface-variant text-sm col-span-4 lg:col-span-2">Waiting for squad data...</p>
+          </div>
+        </section>
 
-    <section class="bg-surface-container rounded-3xl p-6 mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-black text-on-surface uppercase tracking-tight">The Bench</h3>
-        <span
-          class="px-2 py-1 bg-surface-container-high rounded-full text-[10px] font-bold text-on-surface-variant uppercase">Substitutes</span>
-      </div>
-      <div id="bench-container" class="grid grid-cols-4 gap-2 md:gap-4">
-        <p class="text-on-surface-variant text-sm col-span-4">Waiting for squad data...</p>
-      </div>
-    </section>
+        <section class="bg-surface-container rounded-3xl p-6 relative overflow-hidden border border-[#13ec5b]/20 flex-1">
+          <div class="absolute -right-10 -top-10 size-40 bg-[#13ec5b]/10 blur-3xl rounded-full pointer-events-none"></div>
 
-    <section class="bg-surface-container rounded-3xl p-6 relative overflow-hidden border border-[#13ec5b]/20">
-      <div class="absolute -right-10 -top-10 size-40 bg-[#13ec5b]/10 blur-3xl rounded-full pointer-events-none"></div>
-
-      <div class="flex items-center justify-between mb-5 relative z-10">
-        <h3 class="text-lg font-black text-on-surface uppercase tracking-tight">AI Targets</h3>
-        <span
-          class="px-2 py-1 bg-[#13ec5b]/20 text-[#13ec5b] border border-[#13ec5b]/30 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
-          <span class="material-symbols-outlined text-[12px]">auto_awesome</span> Recommended
-        </span>
+          <div class="flex items-center justify-between mb-5 relative z-10">
+            <h3 class="text-lg font-black text-on-surface uppercase tracking-tight">AI Targets</h3>
+            <span
+              class="px-2 py-1 bg-[#13ec5b]/20 text-[#13ec5b] border border-[#13ec5b]/30 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+              <span class="material-symbols-outlined text-[12px]">auto_awesome</span> Recommended
+            </span>
+          </div>
+          <div id="suggestions-container" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-3 relative z-10">
+            <p class="text-on-surface-variant text-sm col-span-3 lg:col-span-1">Enter ID to scan the transfer market...</p>
+          </div>
+        </section>
       </div>
-      <div id="suggestions-container" class="grid grid-cols-1 md:grid-cols-3 gap-3 relative z-10">
-        <p class="text-on-surface-variant text-sm col-span-3">Enter ID to scan the transfer market...</p>
-      </div>
-    </section>
+    </div>
   </main>
 
+  <!-- Bottom Navigation -->
   <nav
-    class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-surface-container-lowest/95 backdrop-blur-md border-t border-outline-variant/20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.2)] z-50 rounded-t-2xl">
-    <a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-1.5 hover:text-primary active:scale-90 transition-all duration-200"
-      href="/">
-      <span class="material-symbols-outlined mb-1" data-icon="science">science</span>
-      <span class="font-inter text-[11px] font-medium">Transfer Lab</span>
-    </a>
-    <a class="flex flex-col items-center justify-center bg-primary/10 text-primary rounded-xl px-5 py-1.5 active:scale-90 transition-all duration-200"
-      href="/static/my-team.html">
-      <span class="material-symbols-outlined mb-1" data-icon="group"
-        style="font-variation-settings: 'FILL' 1;">group</span>
-      <span class="font-inter text-[11px] font-bold">My Team</span>
-    </a>
+    class="fixed bottom-0 left-0 w-full z-40 bg-surface-container-lowest/90 backdrop-blur-xl border-t border-outline-variant/20 px-8 py-4 md:auto-cols-min md:w-[400px] md:left-1/2 md:-translate-x-1/2 md:bottom-8 md:border md:rounded-full md:shadow-2xl md:shadow-primary/10">
+    <div class="max-w-md mx-auto flex justify-around items-center">
+      <a href="/" class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-white transition-colors group">
+        <div class="relative">
+          <span
+            class="material-symbols-outlined text-3xl group-hover:-translate-y-1 transition-transform duration-300">science</span>
+          <div
+            class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity">
+          </div>
+        </div>
+        <span class="text-[10px] font-bold uppercase tracking-widest mt-1">Transfer Lab</span>
+      </a>
+
+      <a href="/my-team"
+        class="flex flex-col items-center gap-1 text-primary group">
+        <div class="relative">
+          <span
+            class="material-symbols-outlined text-3xl group-hover:-translate-y-1 transition-transform duration-300"
+            style="font-variation-settings: 'FILL' 1;">groups</span>
+          <div
+            class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary opacity-100 transition-opacity">
+          </div>
+        </div>
+        <span class="text-[10px] font-bold uppercase tracking-widest mt-1">My Team</span>
+      </a>
+    </div>
   </nav>
 
   <script>

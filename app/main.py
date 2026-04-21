@@ -269,7 +269,7 @@ def get_top_picks():
             "projected_points": player["ep_next"],
             "custom_index": player["custom_index"], # Send the custom score to the UI!
             "ownership_percent": player["selected_by_percent"],
-            "image_url": get_player_image_url(player["photo"].replace(".jpg", ""))
+            "image_url": get_player_image_url(player["code"])
         })
         
     return {"top_picks": formatted_picks}
@@ -406,8 +406,8 @@ def calculate_native_performer_index(player, next_3_matches):
         return 0.0
 
     # Calculate raw Per 90 stats
-    ict_per_90 = (player["ict_index"] / player["minutes"]) * 90
-    bps_per_90 = (player["bps"] / player["minutes"]) * 90
+    ict_per_90 = (float(player.get("ict_index", 0.0)) / player["minutes"]) * 90
+    bps_per_90 = (float(player.get("bps", 0)) / player["minutes"]) * 90
 
     # 3. Calculate Fixture Score (Next 3 Matches)
     # next_3_matches is a list of numbers, like [2, 3, 4]
@@ -491,17 +491,3 @@ def get_top_performers():
         })
         
     return {"top_performers": formatted_performers}
-
-#----------------------------old endpoints----------------------------
-    
-@app.get("/players/injured")
-@cached(cache=injured_cache)
-def injured_players():
-    data = get_injured_players()
-    return {"injured_players": data}
-
-@app.get("/strikers/forecast")
-@cached(cache=striker_cache)
-def get_striker_forecasts():
-    data = get_strikers_forecast()
-    return {"top_strikers": data}
