@@ -10,6 +10,7 @@ app = FastAPI(title="Football Performance Forecaster")
 
 # Mount the static folder
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/src", StaticFiles(directory="frontend/src"), name="src")
 
 # Create the route for the main URL ("/")
 @app.get("/")
@@ -43,6 +44,15 @@ def root():
     return {"message": "Football Analysis API is running and auto deploying updates!"}
 """
 #----------------------------new endpoints----------------------------
+
+IS_SEASON_ACTIVE = False # The master switch
+
+@app.get("/api/system-status")
+async def get_system_status():
+    return {
+        "is_season_active": IS_SEASON_ACTIVE,
+        "season_label": "26/27 SEASON"
+    }
 
 @app.get("/api/my-team/{manager_id}")
 def get_manager_team(manager_id: int):
