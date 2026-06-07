@@ -3,7 +3,7 @@ console.log("🚀 APP.JS HAS SUCCESSFULLY LOADED!");
 // Set this to your local Python server address.
 // When you deploy to Google Cloud, change this to your public Cloud Run URL!
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "";
 
 // ==========================================
 // 1. GLOBAL INITIALIZATION & SYSTEM CHECK
