@@ -46,6 +46,15 @@ function enableOffSeasonMode() {
             showToast("You can see your team insights when the next season starts.");
         });
     }
+
+    const lastSeasonBtn = document.getElementById('last-season-btn');
+    if (lastSeasonBtn) {
+        lastSeasonBtn.addEventListener('click', () => {
+            document.getElementById('off-season-home').classList.add('hidden');
+            document.getElementById('main-dashboard-grid').style.display = '';
+            fetchDashboardData();
+        });
+    }
 }
 
 function showToast(message) {
