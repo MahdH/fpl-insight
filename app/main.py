@@ -10,7 +10,7 @@ app = FastAPI(title="Football Performance Forecaster")
 
 # Mount the static folder
 app.mount("/static", StaticFiles(directory="static"), name="static")
-‍app.mount("/src", StaticFiles(directory="frontend/src"), name="src")
+app.mount("/src", StaticFiles(directory="frontend/src"), name="src")
 app.mount("/frontend/src", StaticFiles(directory="frontend/src"), name="src")
 
 # Create the route for the main URL ("/")
