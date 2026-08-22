@@ -153,17 +153,27 @@ def get_transfer_suggestions(manager_id: int):
     if not upcoming:
         return {"suggestions": []}
         
-    team_next_3_diffs = {}
+    team_next_3_matches = {}
     for t_id in team_lookup.keys():
-        diffs = []
+        matches_data = []
         for match in upcoming:
             if match["team_h"] == t_id:
-                diffs.append(match["team_h_difficulty"])
+                opp_id = match["team_a"]
+                opp_data = team_lookup[opp_id]
+                matches_data.append({
+                    "opp_def": opp_data.get("strength_defence_away") or 1100,
+                    "opp_atk": opp_data.get("strength_attack_away") or 1100
+                })
             elif match["team_a"] == t_id:
-                diffs.append(match["team_a_difficulty"])
-            if len(diffs) == 3:
+                opp_id = match["team_h"]
+                opp_data = team_lookup[opp_id]
+                matches_data.append({
+                    "opp_def": opp_data.get("strength_defence_home") or 1100,
+                    "opp_atk": opp_data.get("strength_attack_home") or 1100
+                })
+            if len(matches_data) == 3:
                 break
-        team_next_3_diffs[t_id] = diffs
+        team_next_3_matches[t_id] = matches_data
     
     # 6. Run the Algorithm on the Available Players
     for player in available_players:
@@ -172,7 +182,7 @@ def get_transfer_suggestions(manager_id: int):
         # We use your 'Top Performer' pure dominance index here!
         player["suggestion_score"] = calculate_native_performer_index(
             player=player, 
-            next_3_matches=team_next_3_diffs.get(team_id, [3, 3, 3])
+            next_3_matches=team_next_3_matches.get(team_id, [{"opp_def": 1100, "opp_atk": 1100}] * 3)
         )
         
     # 7. Sort the available pool by YOUR proprietary score
@@ -244,17 +254,18 @@ def get_top_picks():
             if match["team_h"] == team_id:
                 player_match = match
                 is_home = True
-                match_difficulty = match["team_h_difficulty"]
+                opponent_team_id = match["team_a"]
                 break
             elif match["team_a"] == team_id:
                 player_match = match
                 is_home = False
-                match_difficulty = match["team_a_difficulty"]
+                opponent_team_id = match["team_h"]
                 break
+                
+        opponent_team_data = team_lookup.get(opponent_team_id, {})
                 
         # Package the match data for the algorithm
         next_match_data = {
-            "difficulty": match_difficulty,
             "is_home": is_home
         }
         
@@ -262,7 +273,8 @@ def get_top_picks():
         player["custom_index"] = calculate_native_striker_index(
             player=player, 
             next_match=next_match_data, 
-            team_data=player_team_data
+            team_data=player_team_data,
+            opponent_data=opponent_team_data
         )
         
     # 6. Sort by YOUR algorithm instead of standard FPL metrics
@@ -285,34 +297,46 @@ def get_top_picks():
         
     return {"top_picks": formatted_picks}
 
-def calculate_native_striker_index(player, next_match, team_data):
+def calculate_native_striker_index(player, next_match, team_data, opponent_data):
     """
     Calculates a proprietary 100-point index using FPL's native attack strength ratings.
     """
     # 1. Form Score (Max: 40)
-    form_value = min(float(player.get("form", 0.0)), 10.0)
+    form_value = min(float(player.get("form") or 0.0), 10.0)
     form_score = (form_value / 10.0) * 40.0
     
     # 2. Pedigree Score (Max: 30)
     points_value = min(player.get("total_points", 0), 250)
     pedigree_score = (points_value / 250.0) * 30.0
     
-    # 3. Base Matchup Difficulty (Max: 25)
-    difficulty = next_match.get("difficulty", 3)
-    difficulty_score = ((5.0 - difficulty) / 4.0) * 25.0
-    
-    # 4. Dynamic Environment Bonus (Max: 5)
+    # 3. Dynamic Matchup Difficulty (Max: 25)
     is_home = next_match.get("is_home", True)
     
-    # Grab FPL's native attack rating based on location
+    # Granular Defense Strength of opponent
+    if is_home:
+        opp_def_strength = opponent_data.get("strength_defence_away", 1100)
+    else:
+        opp_def_strength = opponent_data.get("strength_defence_home", 1100)
+        
+    # Pre-season fallback
+    if not opp_def_strength:
+        opp_def_strength = 1100
+
+    # Scale 1000 (Very weak defense) -> 1350 (Elite defense)
+    # The weaker the defense, the more points (Max 25)
+    difficulty_score = ((1350 - opp_def_strength) / 350.0) * 25.0
+    difficulty_score = max(min(difficulty_score, 25.0), 0.0)
+    
+    # 4. Dynamic Environment Bonus (Max: 5)
     if is_home:
         attack_strength = team_data.get("strength_attack_home", 1100)
     else:
         attack_strength = team_data.get("strength_attack_away", 1100)
         
+    if not attack_strength:
+        attack_strength = 1100
+        
     dynamic_bonus = 0.0
-    
-    # Thresholds based on FPL's 1000-1350 scale
     if attack_strength >= 1150:  # "Good" attacking team
         dynamic_bonus += 2.0
     if attack_strength >= 1250:  # "Elite" attacking team
@@ -371,7 +395,10 @@ def get_target_fixture():
     # The fixture API only gives us numbers (Team 1 vs Team 14). 
     # We need to map those numbers to Short Names (ARS) and Overall Strength ratings.
     team_names = {team["id"]: team["short_name"] for team in master_data["teams"]}
-    team_strength = {team["id"]: (team["strength"] or 0) for team in master_data["teams"]}
+    
+    # Pre-calculate home attack strength and away defence strength for every team
+    team_attack_home = {team["id"]: (team.get("strength_attack_home") or 1100) for team in master_data["teams"]}
+    team_defence_away = {team["id"]: (team.get("strength_defence_away") or 1100) for team in master_data["teams"]}
     
     # 3. Find exactly which Gameweek is next
     # Filter out any weird null data, and grab the event number of the very first upcoming match
@@ -384,12 +411,12 @@ def get_target_fixture():
     next_gw_matches = [f for f in upcoming if f["event"] == next_gw]
     
     # 5. The Sorting Algorithm (The Secret Sauce)
-    # We want a fixture where the Home Team has a very low difficulty rating (e.g., 2),
-    # BUT we also want to make sure the Home Team is actually a powerhouse (high strength).
-    # We sort by lowest difficulty first, then highest team strength.
+    # We want a fixture where the Home Team has a very easy game defensively (opponent has weak defence),
+    # BUT we also want to make sure the Home Team is an attacking powerhouse.
+    # We sort by lowest opponent away defence strength first, then highest home attack strength.
     target_matches = sorted(
         next_gw_matches,
-        key=lambda x: (x["team_h_difficulty"], -team_strength[x["team_h"]])
+        key=lambda x: (team_defence_away[x["team_a"]], -team_attack_home[x["team_h"]])
     )
     
     # 6. Grab the absolute best match
@@ -398,10 +425,15 @@ def get_target_fixture():
     away_team = team_names[best_match["team_a"]]
     
     # 7. Format for the Blue Bento Card
+    # Convert granular defence strength (1000-1350) back to a 1-5 scale for the UI
+    # Weaker defence means easier difficulty. e.g., 1000 -> 1, 1350 -> 5
+    raw_diff = team_defence_away[best_match["team_a"]]
+    scaled_difficulty = max(1, min(5, round(((raw_diff - 1000) / 350.0) * 4) + 1))
+
     return {
         "target_fixture": {
             "match": f"{home_team} vs {away_team}",
-            "difficulty": best_match["team_h_difficulty"],
+            "difficulty": scaled_difficulty,
             "max_difficulty": 5
         }
     }
@@ -421,14 +453,20 @@ def calculate_native_performer_index(player, next_3_matches):
     bps_per_90 = (float(player.get("bps", 0)) / player["minutes"]) * 90
 
     # 3. Calculate Fixture Score (Next 3 Matches)
-    # next_3_matches is a list of numbers, like [2, 3, 4]
-    total_difficulty = sum(next_3_matches)
-    
-    # Invert the score so easier games = more points
-    fixture_score = ((15 - total_difficulty) / 12.0) * 20.0
-    
-    # Make sure it stays between 0 and 20 points
-    fixture_score = max(min(fixture_score, 20.0), 0.0) 
+    # next_3_matches is a list of dicts with opp_def and opp_atk
+    total_fixture_score = 0.0
+    for match in next_3_matches:
+        if player.get("element_type") in [1, 2]: # GK, DEF
+            opp_strength = match.get("opp_atk", 1100)
+        else: # MID, FWD
+            opp_strength = match.get("opp_def", 1100)
+            
+        # Scale 1000 (weak) -> 1350 (elite)
+        # Max score per match is 20 / 3 = 6.66. The weaker the opponent, the better.
+        match_score = ((1350 - opp_strength) / 350.0) * (20.0 / 3.0)
+        total_fixture_score += match_score
+        
+    fixture_score = max(min(total_fixture_score, 20.0), 0.0)
 
     # 4. REBALANCED SCORES
     threat_score = min((ict_per_90 / 12.0) * 30, 30.0)
@@ -460,17 +498,27 @@ def get_top_performers():
     if not upcoming:
         return {"top_performers": []}
     
-    team_next_3_diffs = {}
+    team_next_3_matches = {}
     for t_id in team_lookup.keys():
-        diffs = []
+        matches_data = []
         for match in upcoming:
             if match["team_h"] == t_id:
-                diffs.append(match["team_h_difficulty"])
+                opp_id = match["team_a"]
+                opp_data = team_lookup[opp_id]
+                matches_data.append({
+                    "opp_def": opp_data.get("strength_defence_away") or 1100,
+                    "opp_atk": opp_data.get("strength_attack_away") or 1100
+                })
             elif match["team_a"] == t_id:
-                diffs.append(match["team_a_difficulty"])
-            if len(diffs) == 3:
+                opp_id = match["team_h"]
+                opp_data = team_lookup[opp_id]
+                matches_data.append({
+                    "opp_def": opp_data.get("strength_defence_home") or 1100,
+                    "opp_atk": opp_data.get("strength_attack_home") or 1100
+                })
+            if len(matches_data) == 3:
                 break
-        team_next_3_diffs[t_id] = diffs
+        team_next_3_matches[t_id] = matches_data
     
     # 4. Run the Proprietary Algorithm on EVERY player in the league
     for player in all_players:
@@ -479,7 +527,7 @@ def get_top_performers():
         # Calculate and attach the custom index
         player["performance_index"] = calculate_native_performer_index(
             player=player, 
-            next_3_matches=team_next_3_diffs.get(team_id, [3, 3, 3])
+            next_3_matches=team_next_3_matches.get(team_id, [{"opp_def": 1100, "opp_atk": 1100}] * 3)
         )
         
     # 5. Sort by YOUR algorithm (Highest to Lowest)
