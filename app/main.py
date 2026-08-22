@@ -371,7 +371,7 @@ def get_target_fixture():
     # The fixture API only gives us numbers (Team 1 vs Team 14). 
     # We need to map those numbers to Short Names (ARS) and Overall Strength ratings.
     team_names = {team["id"]: team["short_name"] for team in master_data["teams"]}
-    team_strength = {team["id"]: team["strength"] for team in master_data["teams"]}
+    team_strength = {team["id"]: (team["strength"] or 0) for team in master_data["teams"]}
     
     # 3. Find exactly which Gameweek is next
     # Filter out any weird null data, and grab the event number of the very first upcoming match
