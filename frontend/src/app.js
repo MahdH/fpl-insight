@@ -18,11 +18,9 @@ async function initializeApp() {
         const response = await fetch(`${API_BASE_URL}/api/system-status`);
         const status = await response.json();
 
-        if (!status.is_season_active) {
-            enableOffSeasonMode();
-        } else {
-            fetchDashboardData(); // Wrap your old initialization code inside this function
-        }
+        // Always show the dashboard
+        fetchDashboardData(); 
+
     } catch (error) {
         console.error("System status check failed, defaulting to active season.", error);
         fetchDashboardData();
