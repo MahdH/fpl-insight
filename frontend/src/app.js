@@ -96,12 +96,14 @@ async function fetchDashboardData() {
 	}
 }
 
+	const fallbackImg = "https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png";
+
 function populateTopPicks(data) {
 	if (!data || data.length < 3) return;
 
 	// #1 Pick (Haaland card)
 	const pick0Bg = document.getElementById('pick-0-bg');
-	if (pick0Bg) pick0Bg.style.backgroundImage = `url('${data[0].image_url}')`;
+	if (pick0Bg) pick0Bg.style.backgroundImage = `url('${data[0].image_url}'), url('${fallbackImg}')`;
 	const pick0Name = document.getElementById('pick-0-name');
 	if (pick0Name) pick0Name.textContent = data[0].name;
 	const pick0Sub = document.getElementById('pick-0-sub');
@@ -115,7 +117,7 @@ function populateTopPicks(data) {
 
 	// #2 Pick
 	const pick1Bg = document.getElementById('pick-1-bg');
-	if (pick1Bg) pick1Bg.style.backgroundImage = `url('${data[1].image_url}')`;
+	if (pick1Bg) pick1Bg.style.backgroundImage = `url('${data[1].image_url}'), url('${fallbackImg}')`;
 	const pick1Name = document.getElementById('pick-1-name');
 	if (pick1Name) pick1Name.textContent = data[1].name;
 	const pick1Index = document.getElementById('pick-1-index');
@@ -123,7 +125,7 @@ function populateTopPicks(data) {
 
 	// #3 Pick
 	const pick2Bg = document.getElementById('pick-2-bg');
-	if (pick2Bg) pick2Bg.style.backgroundImage = `url('${data[2].image_url}')`;
+	if (pick2Bg) pick2Bg.style.backgroundImage = `url('${data[2].image_url}'), url('${fallbackImg}')`;
 	const pick2Name = document.getElementById('pick-2-name');
 	if (pick2Name) pick2Name.textContent = data[2].name;
 	const pick2Index = document.getElementById('pick-2-index');
@@ -145,7 +147,7 @@ function populateRiskAlert(data) {
 	const riskChance = document.getElementById('risk-chance');
 	if (riskChance) riskChance.textContent = `Chance: ${data.chance}`;
 	const riskBg = document.getElementById('risk-bg');
-	if (riskBg) riskBg.style.backgroundImage = `url('${data.image_url}')`;
+	if (riskBg) riskBg.style.backgroundImage = `url('${data.image_url}'), url('${fallbackImg}')`;
 }
 
 function populateFixture(data) {
@@ -175,7 +177,7 @@ function populatePerformers(data) {
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-3">
 				<div class="relative">
-					<div class="size-11 rounded-full bg-cover bg-center border-2 border-border-dark" style="background-image: url('${player.image_url}');"></div>
+					<div class="size-11 rounded-full bg-cover bg-center border-2 border-border-dark" style="background-image: url('${player.image_url}'), url('${fallbackImg}');"></div>
 					<div class="absolute -bottom-1 -right-1 size-5 bg-background-dark rounded-full flex items-center justify-center border border-border-dark">
 						<span class="text-[10px] font-bold ${rankColor}">${player.rank}</span>
 					</div>
