@@ -2,25 +2,24 @@ import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from cachetools import cached, TTLCache
-from app.analyzer import get_strikers_forecast, get_top_in_form_players, get_injured_players, get_player_image_url
+from app.analyzer import get_player_image_url
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 app = FastAPI(title="Football Performance Forecaster")
 
-# Mount the static folder
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/src", StaticFiles(directory="frontend/src"), name="src")
-app.mount("/frontend/src", StaticFiles(directory="frontend/src"), name="src")
+# Mount the frontend assets. On Vercel these paths are served straight from
+# the CDN via public/ (see vercel.json); these routes exist for local dev
+# (`uvicorn app.main:app`) and any non-Vercel deployment.
+app.mount("/src", StaticFiles(directory="public/src"), name="src")
 
-# Create the route for the main URL ("/")
 @app.get("/")
 def serve_dashboard():
-    return FileResponse("static/index.html")
+    return FileResponse("public/index.html")
 
 @app.get("/my-team")
 def serve_my_team():
-    return FileResponse("static/my-team.html")
+    return FileResponse("public/my-team.html")
 
 # Tells API to accept requests from local HTML file
 app.add_middleware(
@@ -39,11 +38,6 @@ striker_cache = TTLCache(maxsize=100, ttl=3600)
 risk_cache = TTLCache(maxsize=100, ttl=3600)
 fixture_cache = TTLCache(maxsize=5, ttl=3600)
 
-"""
-@app.get("/")
-def root():
-    return {"message": "Football Analysis API is running and auto deploying updates!"}
-"""
 #----------------------------new endpoints----------------------------
 
 IS_SEASON_ACTIVE = False # The master switch

@@ -1,3 +1,7 @@
+# Not used by the Vercel deployment (Vercel builds api/index.py as a Python
+# serverless function directly from requirements.txt). Kept for local
+# container runs and as a reference for any non-Vercel host.
+
 # 1. A lightweight version of Python
 FROM python:3.11-slim
 

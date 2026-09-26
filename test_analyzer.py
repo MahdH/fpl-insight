@@ -1,5 +1,3 @@
-import pandas as pd
-import pytest
 from app.main import calculate_native_striker_index, calculate_native_performer_index
 
 # STRIKER INDEX TESTS
