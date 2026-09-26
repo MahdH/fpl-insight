@@ -10,11 +10,10 @@ from fastapi.responses import FileResponse
 
 app = FastAPI(title="Football Performance Forecaster")
 
-# On Vercel, public/ is served straight from the CDN (see vercel.json) and is
-# never part of the api/index.py function's filesystem, so it must not be
-# touched at import time. These routes only register when public/ exists on
-# disk, which covers local dev (`uvicorn app.main:app`) and any non-Vercel
-# deployment without ever crashing the serverless function.
+# Vercel's FastAPI preset auto-detects this file as the entrypoint, serves
+# public/ from its CDN, and promotes this app.mount() to the CDN at build
+# time. Guarding on the directory's existence just means this never crashes
+# module import on a deploy target where public/ isn't present.
 PUBLIC_DIR = Path(__file__).resolve().parent.parent / "public"
 
 if PUBLIC_DIR.is_dir():
