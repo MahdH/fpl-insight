@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,18 +10,23 @@ from fastapi.responses import FileResponse
 
 app = FastAPI(title="Football Performance Forecaster")
 
-# Mount the frontend assets. On Vercel these paths are served straight from
-# the CDN via public/ (see vercel.json); these routes exist for local dev
-# (`uvicorn app.main:app`) and any non-Vercel deployment.
-app.mount("/src", StaticFiles(directory="public/src"), name="src")
+# On Vercel, public/ is served straight from the CDN (see vercel.json) and is
+# never part of the api/index.py function's filesystem, so it must not be
+# touched at import time. These routes only register when public/ exists on
+# disk, which covers local dev (`uvicorn app.main:app`) and any non-Vercel
+# deployment without ever crashing the serverless function.
+PUBLIC_DIR = Path(__file__).resolve().parent.parent / "public"
 
-@app.get("/")
-def serve_dashboard():
-    return FileResponse("public/index.html")
+if PUBLIC_DIR.is_dir():
+    app.mount("/src", StaticFiles(directory=PUBLIC_DIR / "src"), name="src")
 
-@app.get("/my-team")
-def serve_my_team():
-    return FileResponse("public/my-team.html")
+    @app.get("/")
+    def serve_dashboard():
+        return FileResponse(PUBLIC_DIR / "index.html")
+
+    @app.get("/my-team")
+    def serve_my_team():
+        return FileResponse(PUBLIC_DIR / "my-team.html")
 
 # Tells API to accept requests from local HTML file
 app.add_middleware(
