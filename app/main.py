@@ -1,12 +1,16 @@
 from pathlib import Path
+from threading import Lock
 
 import requests
+from cachetools import TTLCache, cached
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from cachetools import cached, TTLCache
-from app.analyzer import get_player_image_url
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from app.analyzer import get_player_image_url
+from app.model import expected_goals, neutral_rating, next_gameweek, project_players, team_ratings, upcoming_fixtures
+from app.transfers import suggest_transfers
 
 app = FastAPI(title="Football Performance Forecaster")
 
@@ -27,26 +31,109 @@ if PUBLIC_DIR.is_dir():
     def serve_my_team():
         return FileResponse(PUBLIC_DIR / "my-team.html")
 
-# Tells API to accept requests from local HTML file
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allows all websites to fetch your data
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Using TTL Cache to refresh the data periodically (e.g., max 100 items, expires after 3600 seconds)
-master_db_cache = TTLCache(maxsize=5, ttl=3600)
-topform_cache = TTLCache(maxsize=100, ttl=3600)
-injured_cache = TTLCache(maxsize=100, ttl=3600)
-striker_cache = TTLCache(maxsize=100, ttl=3600)
-risk_cache = TTLCache(maxsize=100, ttl=3600)
-fixture_cache = TTLCache(maxsize=5, ttl=3600)
+FPL_API = "https://fantasy.premierleague.com/api"
+REQUEST_TIMEOUT = 10  # seconds; keeps a slow FPL API from hanging the function
 
-#----------------------------new endpoints----------------------------
+cache_lock = Lock()  # FastAPI runs these sync endpoints in a thread pool; TTLCache isn't thread-safe
+master_db_cache = TTLCache(maxsize=1, ttl=3600)
+fixture_cache = TTLCache(maxsize=1, ttl=3600)
+manager_cache = TTLCache(maxsize=512, ttl=120)
+entry_cache = TTLCache(maxsize=512, ttl=600)
 
-IS_SEASON_ACTIVE = False # The master switch
+IS_SEASON_ACTIVE = False  # The master switch
+
+
+@cached(cache=master_db_cache, lock=cache_lock)
+def fetch_master_fpl_data():
+    """Downloads the entire FPL database once an hour."""
+    response = requests.get(f"{FPL_API}/bootstrap-static/", timeout=REQUEST_TIMEOUT)
+    response.raise_for_status()
+    return response.json()
+
+
+@cached(cache=fixture_cache, lock=cache_lock)
+def fetch_fixtures():
+    """The whole season's fixtures: played ones size each team's sample, unplayed ones drive projections."""
+    response = requests.get(f"{FPL_API}/fixtures/", timeout=REQUEST_TIMEOUT)
+    response.raise_for_status()
+    return response.json()
+
+
+def fetch_manager_json(cache, key, url):
+    """GET a manager endpoint, caching successes only so a failed lookup is retried on the next click."""
+    with cache_lock:
+        cached_value = cache.get(key)
+    if cached_value is not None:
+        return cached_value
+
+    try:
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
+        data = response.json() if response.status_code == 200 else None
+    except (requests.RequestException, ValueError):
+        return None
+
+    if data is not None:
+        with cache_lock:
+            cache[key] = data
+    return data
+
+
+def fetch_manager_picks(manager_id, gameweek):
+    """A manager's squad for a gameweek: {"picks": [...], "entry_history": {"bank": ...}}, or None."""
+    return fetch_manager_json(
+        manager_cache, (manager_id, gameweek), f"{FPL_API}/entry/{manager_id}/event/{gameweek}/picks/"
+    )
+
+
+def fetch_manager_entry(manager_id):
+    """A manager's profile (team name, manager name, ranks), or None."""
+    return fetch_manager_json(entry_cache, manager_id, f"{FPL_API}/entry/{manager_id}/")
+
+
+def load_projections():
+    master = fetch_master_fpl_data()
+    projections, _ = project_players(master, fetch_fixtures())
+    return master, projections
+
+
+def rank_by_xp(players, projections):
+    """Players with a positive horizon xP, best first. Injured, suspended and unused players drop out."""
+    scored = [p for p in players if projections.get(p["id"], {}).get("xp_horizon", 0) > 0]
+    return sorted(scored, key=lambda p: projections[p["id"]]["xp_horizon"], reverse=True)
+
+
+def current_gameweek(master):
+    return next((event["id"] for event in master["events"] if event["is_current"]), 1)
+
+
+def format_price(player):
+    return f"£{player['now_cost'] / 10:.1f}m"
+
+
+def full_name(player):
+    return f"{player['first_name']} {player['second_name']}".strip()
+
+
+def team_short_names(master):
+    return {team["id"]: team["short_name"] for team in master["teams"]}
+
+
+def short_name(player):
+    initial = (player.get("first_name") or "")[:1]
+    return f"{initial}. {player['second_name']}" if initial else player["second_name"]
+
+
+def player_image(player):
+    return get_player_image_url(str(player.get("photo", "")).replace(".jpg", ""))
+
 
 @app.get("/api/system-status")
 async def get_system_status():
@@ -55,498 +142,206 @@ async def get_system_status():
         "season_label": "26/27 SEASON"
     }
 
+
 @app.get("/api/my-team/{manager_id}")
 def get_manager_team(manager_id: int):
-    # 1. Grab our instant master database
     master_data = fetch_master_fpl_data()
-    all_players = {p["id"]: p for p in master_data["elements"]} # Create a fast lookup dictionary
-    
-    # 2. Find the current Gameweek
-    # We scan the 'events' list to find the one marked 'is_current'
-    current_gw = 1 # Fallback
-    for event in master_data["events"]:
-        if event["is_current"]:
-            current_gw = event["id"]
-            break
-            
-    # 3. Fetch the specific manager's team for this Gameweek
-    manager_url = f"https://fantasy.premierleague.com/api/entry/{manager_id}/event/{current_gw}/picks/"
-    response = requests.get(manager_url)
-    
-    # Safeguard: If the user types an invalid ID, return an error safely
-    if response.status_code != 200:
+    all_players = {p["id"]: p for p in master_data["elements"]}
+    gameweek = current_gameweek(master_data)
+
+    squad_data = fetch_manager_picks(manager_id, gameweek)
+    if squad_data is None:
         return {"error": "Manager ID not found or invalid."}
-        
-    manager_data = response.json()
-    picks = manager_data.get("picks", [])
-    
-    # 4. Hydrate the data (Match the IDs to the real player info)
+
+    entry = fetch_manager_entry(manager_id) or {}
+    manager_name = " ".join(filter(None, [entry.get("player_first_name"), entry.get("player_last_name")]))
+
     starting_xi = []
     bench = []
-    
-    for pick in picks:
-        player_id = pick["element"]
-        player_info = all_players.get(player_id)
-        
-        if not player_info:
+    for pick in squad_data.get("picks", []):
+        player = all_players.get(pick["element"])
+        if not player:
             continue
-            
-        # Format the data for your frontend pitch UI
+
         formatted_player = {
-            "name": player_info["web_name"],
-            "position": player_info["element_type"], # 1=GK, 2=DEF, 3=MID, 4=FWD
-            "price": f"£{player_info['now_cost'] / 10:.1f}m",
+            "name": player["web_name"],
+            "position": player["element_type"],  # 1=GK, 2=DEF, 3=MID, 4=FWD
+            "price": format_price(player),
             "is_captain": pick["is_captain"],
             "is_vice_captain": pick["is_vice_captain"],
-            "multiplier": pick["multiplier"], # If multiplier is 0, they are on the bench
-            "image_url": get_player_image_url(player_info["photo"].replace(".jpg", ""))
+            "multiplier": pick["multiplier"],
+            "image_url": player_image(player),
         }
-        
-        # FPL uses 'multiplier' to indicate if a player is starting (1 or 2) or benched (0)
-        if pick["multiplier"] > 0:
-            starting_xi.append(formatted_player)
-        else:
-            bench.append(formatted_player)
-            
-    # 5. Send the perfectly formatted squad to your HTML
+        # A multiplier of 0 means the player is on the bench.
+        (starting_xi if pick["multiplier"] > 0 else bench).append(formatted_player)
+
     return {
         "manager_id": manager_id,
-        "gameweek": current_gw,
+        "team_name": entry.get("name"),
+        "manager_name": manager_name or None,
+        "gameweek": gameweek,
         "squad": {
             "starting_xi": starting_xi,
             "bench": bench
         }
     }
 
+
 @app.get("/api/transfer-suggestions/{manager_id}")
 def get_transfer_suggestions(manager_id: int):
-    # 1. Grab databases
-    master_data = fetch_master_fpl_data()
-    fixtures = fetch_upcoming_fixtures()
-    all_players = master_data["elements"]
-    
-    # 2. Figure out the current Gameweek
-    current_gw = 1
-    for event in master_data["events"]:
-        if event["is_current"]:
-            current_gw = event["id"]
-            break
-            
-    # 3. Fetch the Manager's Current Squad
-    manager_url = f"https://fantasy.premierleague.com/api/entry/{manager_id}/event/{current_gw}/picks/"
-    response = requests.get(manager_url)
-    
-    if response.status_code != 200:
+    master_data, projections = load_projections()
+
+    squad_data = fetch_manager_picks(manager_id, current_gameweek(master_data))
+    if squad_data is None:
         return {"error": "Manager ID not found."}
-        
-    # 4. THE SET DIFFERENCE (Filter out players they already own)
-    # We use a Python 'set' for O(1) lightning-fast lookups
-    owned_player_ids = {pick["element"] for pick in response.json().get("picks", [])}
-    
-    # Create our new pool of available free agents
-    available_players = [p for p in all_players if p["id"] not in owned_player_ids]
-    
-    # 5. Set up the Team Data and Fixtures for the Algorithm
-    team_lookup = {team["id"]: team for team in master_data["teams"]}
-    upcoming = [f for f in fixtures if f["event"] is not None]
-    
-    if not upcoming:
-        return {"suggestions": []}
-        
-    team_next_3_matches = {}
-    for t_id in team_lookup.keys():
-        matches_data = []
-        for match in upcoming:
-            if match["team_h"] == t_id:
-                opp_id = match["team_a"]
-                opp_data = team_lookup[opp_id]
-                matches_data.append({
-                    "opp_def": opp_data.get("strength_defence_away") or 1100,
-                    "opp_atk": opp_data.get("strength_attack_away") or 1100
-                })
-            elif match["team_a"] == t_id:
-                opp_id = match["team_h"]
-                opp_data = team_lookup[opp_id]
-                matches_data.append({
-                    "opp_def": opp_data.get("strength_defence_home") or 1100,
-                    "opp_atk": opp_data.get("strength_attack_home") or 1100
-                })
-            if len(matches_data) == 3:
-                break
-        team_next_3_matches[t_id] = matches_data
-    
-    # 6. Run the Algorithm on the Available Players
-    for player in available_players:
-        team_id = player["team"]
-        
-        # We use your 'Top Performer' pure dominance index here!
-        player["suggestion_score"] = calculate_native_performer_index(
-            player=player, 
-            next_3_matches=team_next_3_matches.get(team_id, [{"opp_def": 1100, "opp_atk": 1100}] * 3)
-        )
-        
-    # 7. Sort the available pool by YOUR proprietary score
-    available_players.sort(key=lambda x: x["suggestion_score"], reverse=True)
-    
-    # 8. Grab the Top 3 and format
-    top_3 = available_players[:3]
-    formatted_suggestions = []
-    
-    for player in top_3:
-        formatted_suggestions.append({
+
+    players = master_data["elements"]
+    by_id = {p["id"]: p for p in players}
+    picks = [pick for pick in squad_data.get("picks", []) if pick["element"] in by_id]
+    bank = (squad_data.get("entry_history") or {}).get("bank") or 0
+
+    swaps = suggest_transfers(
+        squad=[by_id[pick["element"]] for pick in picks],
+        players=players,
+        projections=projections,
+        bank=bank,
+        bench_ids={pick["element"] for pick in picks if pick["multiplier"] == 0},
+    )
+
+    team_names = team_short_names(master_data)
+
+    def side(player):
+        return {
             "id": player["id"],
-            "name": f"{player['first_name']} {player['second_name']}",
-            "position": player["element_type"], 
-            "price": f"£{player['now_cost'] / 10:.1f}m",
-            "suggestion_score": player["suggestion_score"],
-            "image_url": get_player_image_url(player["photo"].replace(".jpg", ""))
-        })
-        
-    return {"suggestions": formatted_suggestions}
+            "name": player["web_name"],
+            "team": team_names.get(player["team"], ""),
+            "position": player["element_type"],
+            "price": format_price(player),
+            "xp_horizon": round(projections[player["id"]]["xp_horizon"], 1),
+            "xp_next": round(projections[player["id"]]["xp_next"], 1),
+            "image_url": player_image(player),
+        }
 
-@cached(cache=master_db_cache)
-def fetch_master_fpl_data():
-    """Downloads the entire FPL database once an hour."""
-    print("Fetching master database from official FPL servers...")
-    response = requests.get("https://fantasy.premierleague.com/api/bootstrap-static/")
-    return response.json()
+    return {
+        "bank": f"£{bank / 10:.1f}m",
+        "suggestions": [
+            {
+                "position": swap.out["element_type"],
+                "out": side(swap.out),
+                "in": side(swap.into),
+                "xp_gain": round(swap.xp_gain, 1),
+                "xp_gain_next": round(swap.xp_gain_next, 1),
+                "cost_change": round(swap.cost_change / 10, 1),
+                "reason": swap.reason,
+            }
+            for swap in swaps
+        ],
+    }
 
-@cached(cache=fixture_cache)
-def fetch_upcoming_fixtures():
-    """Downloads the future Premier League schedule."""
-    print("Fetching upcoming fixtures from FPL servers...")
-    # The ?future=1 tag tells FPL to ignore games that already happened
-    response = requests.get("https://fantasy.premierleague.com/api/fixtures/?future=1")
-    return response.json()
 
 @app.get("/api/top-picks")
 def get_top_picks():
-    # 1. Grab both databases instantly from local memory
-    master_data = fetch_master_fpl_data()
-    fixtures = fetch_upcoming_fixtures()
-    
-    all_players = master_data["elements"]
-    
-    # 2. Create a fast lookup dictionary for Team Data so we can access attack strengths instantly
-    team_lookup = {team["id"]: team for team in master_data["teams"]}
-    
-    # 3. Figure out exactly which Gameweek is next
-    upcoming = [f for f in fixtures if f["event"] is not None]
-    if not upcoming:
-        return {"top_picks": []}
-    next_gw = upcoming[0]["event"]
-    next_gw_matches = [f for f in upcoming if f["event"] == next_gw]
-    
-    # 4. Filter for Forwards only
-    forwards = [p for p in all_players if p["element_type"] == 4]
-    
-    # 5. Run the Proprietary Algorithm
-    for player in forwards:
-        team_id = player["team"]
-        player_team_data = team_lookup.get(team_id, {})
-        
-        # Find the specific match this player's team is playing next
-        player_match = None
-        is_home = True
-        match_difficulty = 3 # Default fallback
-        
-        for match in next_gw_matches:
-            if match["team_h"] == team_id:
-                player_match = match
-                is_home = True
-                opponent_team_id = match["team_a"]
-                break
-            elif match["team_a"] == team_id:
-                player_match = match
-                is_home = False
-                opponent_team_id = match["team_h"]
-                break
-                
-        opponent_team_data = team_lookup.get(opponent_team_id, {})
-                
-        # Package the match data for the algorithm
-        next_match_data = {
-            "is_home": is_home
-        }
-        
-        # Execute the math and attach the score directly to the player's profile
-        player["custom_index"] = calculate_native_striker_index(
-            player=player, 
-            next_match=next_match_data, 
-            team_data=player_team_data,
-            opponent_data=opponent_team_data
-        )
-        
-    # 6. Sort by YOUR algorithm instead of standard FPL metrics
-    forwards.sort(key=lambda x: x["custom_index"], reverse=True)
-    
-    # 7. Grab Top 3 and format for the Frontend
-    top_3 = forwards[:3]
-    formatted_picks = []
-    
-    for player in top_3:
-        formatted_picks.append({
-            "name": f"{player['first_name'][0]}. {player['second_name']}" if player != top_3[0] else f"{player['first_name']} {player['second_name']}",
-            "position": "FWD",
-            "price": f"£{player['now_cost'] / 10:.1f}m",
-            "projected_points": player["ep_next"],
-            "custom_index": player["custom_index"], # Send the custom score to the UI!
-            "ownership_percent": player["selected_by_percent"],
-            "image_url": get_player_image_url(player["code"])
-        })
-        
-    return {"top_picks": formatted_picks}
+    master_data, projections = load_projections()
+    forwards = [p for p in master_data["elements"] if p["element_type"] == 4]
 
-def calculate_native_striker_index(player, next_match, team_data, opponent_data):
-    """
-    Calculates a proprietary 100-point index using FPL's native attack strength ratings.
-    """
-    # 1. Form Score (Max: 40)
-    form_value = min(float(player.get("form") or 0.0), 10.0)
-    form_score = (form_value / 10.0) * 40.0
-    
-    # 2. Pedigree Score (Max: 30)
-    points_value = min(player.get("total_points", 0), 250)
-    pedigree_score = (points_value / 250.0) * 30.0
-    
-    # 3. Dynamic Matchup Difficulty (Max: 25)
-    is_home = next_match.get("is_home", True)
-    
-    # Granular Defense Strength of opponent
-    if is_home:
-        opp_def_strength = opponent_data.get("strength_defence_away", 1100)
-    else:
-        opp_def_strength = opponent_data.get("strength_defence_home", 1100)
-        
-    # Pre-season fallback
-    if not opp_def_strength:
-        opp_def_strength = 1100
+    return {
+        "top_picks": [
+            {
+                "name": full_name(player) if rank == 0 else short_name(player),
+                "position": "FWD",
+                "price": format_price(player),
+                "projected_points": player["ep_next"],
+                "custom_index": round(projections[player["id"]]["xp_horizon"], 1),
+                "xp_next": round(projections[player["id"]]["xp_next"], 1),
+                "minutes_security": projections[player["id"]]["minutes_security"],
+                "goals_minus_xg": projections[player["id"]]["goals_minus_xg"],
+                "ownership_percent": player["selected_by_percent"],
+                "image_url": player_image(player),
+            }
+            for rank, player in enumerate(rank_by_xp(forwards, projections)[:3])
+        ]
+    }
 
-    # Scale 1000 (Very weak defense) -> 1350 (Elite defense)
-    # The weaker the defense, the more points (Max 25)
-    difficulty_score = ((1350 - opp_def_strength) / 350.0) * 25.0
-    difficulty_score = max(min(difficulty_score, 25.0), 0.0)
-    
-    # 4. Dynamic Environment Bonus (Max: 5)
-    if is_home:
-        attack_strength = team_data.get("strength_attack_home", 1100)
-    else:
-        attack_strength = team_data.get("strength_attack_away", 1100)
-        
-    if not attack_strength:
-        attack_strength = 1100
-        
-    dynamic_bonus = 0.0
-    if attack_strength >= 1150:  # "Good" attacking team
-        dynamic_bonus += 2.0
-    if attack_strength >= 1250:  # "Elite" attacking team
-        dynamic_bonus += 3.0
-        
-    difficulty_score += dynamic_bonus
-    
-    # 5. Final Aggregation
-    final_index = form_score + pedigree_score + difficulty_score
-    return round(final_index, 1)
 
 @app.get("/api/risk-alerts")
-@cached(cache=risk_cache)
 def get_transfer_out_alert():
-    # 1. Get the data
-    data = fetch_master_fpl_data()
-    all_players = data["elements"]
-    
-    # 2. Filter for "Flagged" players
-    # Status 'i' = Injured, 's' = Suspended, 'd' = Doubtful
-    # We also check chance_of_playing_next_round < 100
+    all_players = fetch_master_fpl_data()["elements"]
+
+    # Flagged players (injured, suspended or doubtful), most-owned first: the most painful
+    # absence for the community.
     flagged_players = [
-        p for p in all_players 
-        if p["status"] != "a" and (p["chance_of_playing_next_round"] is not None and p["chance_of_playing_next_round"] < 100)
+        p for p in all_players
+        if p["status"] != "a" and p["chance_of_playing_next_round"] is not None and p["chance_of_playing_next_round"] < 100
     ]
-    
-    # 3. Sort by Ownership Percentage
-    # We want to highlight the "most painful" injury for the community
-    flagged_players.sort(key=lambda x: float(x["selected_by_percent"]), reverse=True)
-    
     if not flagged_players:
         return {"alert": None}
-        
-    # 4. Grab the most critical one (Top of the list)
-    critical_player = flagged_players[0]
-    
-    # 5. Format for the Red Bento Card
+
+    critical_player = max(flagged_players, key=lambda p: float(p["selected_by_percent"]))
     return {
         "alert": {
             "name": critical_player["second_name"],
-            "full_name": f"{critical_player['first_name']} {critical_player['second_name']}",
-            "reason": critical_player["news"], # e.g., "Hamstring injury - Expected return 12 Apr"
+            "full_name": full_name(critical_player),
+            "reason": critical_player["news"],
             "chance": f"{critical_player['chance_of_playing_next_round']}%",
             "ownership": f"{critical_player['selected_by_percent']}%",
-            "image_url": get_player_image_url(critical_player["photo"].replace(".jpg", ""))
+            "image_url": player_image(critical_player),
         }
     }
 
+
 @app.get("/api/target-fixture")
 def get_target_fixture():
-    # 1. Grab both databases instantly from local memory
+    """The next-gameweek fixture where one side is expected to score the most, by xG."""
     master_data = fetch_master_fpl_data()
-    fixtures = fetch_upcoming_fixtures()
-    
-    # 2. Create translation dictionaries
-    # The fixture API only gives us numbers (Team 1 vs Team 14). 
-    # We need to map those numbers to Short Names (ARS) and Overall Strength ratings.
+    fixtures = fetch_fixtures()
+    ratings, league = team_ratings(master_data["elements"], fixtures)
     team_names = {team["id"]: team["short_name"] for team in master_data["teams"]}
-    
-    # Pre-calculate home attack strength and away defence strength for every team
-    team_attack_home = {team["id"]: (team.get("strength_attack_home") or 1100) for team in master_data["teams"]}
-    team_defence_away = {team["id"]: (team.get("strength_defence_away") or 1100) for team in master_data["teams"]}
-    
-    # 3. Find exactly which Gameweek is next
-    # Filter out any weird null data, and grab the event number of the very first upcoming match
-    upcoming = [f for f in fixtures if f["event"] is not None]
-    if not upcoming:
-        return {"target_fixture": None}
-    next_gw = upcoming[0]["event"]
-    
-    # 4. Isolate only the matches happening in that specific next Gameweek
-    next_gw_matches = [f for f in upcoming if f["event"] == next_gw]
-    
-    # 5. The Sorting Algorithm (The Secret Sauce)
-    # We want a fixture where the Home Team has a very easy game defensively (opponent has weak defence),
-    # BUT we also want to make sure the Home Team is an attacking powerhouse.
-    # We sort by lowest opponent away defence strength first, then highest home attack strength.
-    target_matches = sorted(
-        next_gw_matches,
-        key=lambda x: (team_defence_away[x["team_a"]], -team_attack_home[x["team_h"]])
-    )
-    
-    # 6. Grab the absolute best match
-    best_match = target_matches[0]
-    home_team = team_names[best_match["team_h"]]
-    away_team = team_names[best_match["team_a"]]
-    
-    # 7. Format for the Blue Bento Card
-    # Convert granular defence strength (1000-1350) back to a 1-5 scale for the UI
-    # Weaker defence means easier difficulty. e.g., 1000 -> 1, 1350 -> 5
-    raw_diff = team_defence_away[best_match["team_a"]]
-    scaled_difficulty = max(1, min(5, round(((raw_diff - 1000) / 350.0) * 4) + 1))
 
+    upcoming = upcoming_fixtures(fixtures)
+    gameweek = next_gameweek(master_data, upcoming)
+    matches = [f for f in upcoming if f["event"] == gameweek]
+    if not matches:
+        return {"target_fixture": None}
+
+    def rating(team_id):
+        return ratings.get(team_id, neutral_rating(league))
+
+    options = []
+    for match in matches:
+        home, away = rating(match["team_h"]), rating(match["team_a"])
+        options.append((expected_goals(home, away, league, True), match, True))
+        options.append((expected_goals(away, home, league, False), match, False))
+    team_xg, best_match, home_side = max(options, key=lambda option: option[0])
+
+    target_team = best_match["team_h"] if home_side else best_match["team_a"]
+    difficulty = best_match["team_h_difficulty"] if home_side else best_match["team_a_difficulty"]
     return {
         "target_fixture": {
-            "match": f"{home_team} vs {away_team}",
-            "difficulty": scaled_difficulty,
+            "match": f"{team_names[best_match['team_h']]} vs {team_names[best_match['team_a']]}",
+            "team": team_names[target_team],
+            "expected_goals": round(team_xg, 2),
+            "difficulty": difficulty or 3,
             "max_difficulty": 5
         }
     }
 
-def calculate_native_performer_index(player, next_3_matches):
-    # 1. The Injury Filter
-    chance_to_play = player.get("chance_of_playing_next_round")
-    if chance_to_play is not None and chance_to_play < 100:
-        return 0.0
-
-    # 2. Stricter Minutes Filter (Must play at least 4 full games)
-    if player["minutes"] < 360:
-        return 0.0
-
-    # Calculate raw Per 90 stats
-    ict_per_90 = (float(player.get("ict_index", 0.0)) / player["minutes"]) * 90
-    bps_per_90 = (float(player.get("bps", 0)) / player["minutes"]) * 90
-
-    # 3. Calculate Fixture Score (Next 3 Matches)
-    # next_3_matches is a list of dicts with opp_def and opp_atk
-    total_fixture_score = 0.0
-    for match in next_3_matches:
-        if player.get("element_type") in [1, 2]: # GK, DEF
-            opp_strength = match.get("opp_atk", 1100)
-        else: # MID, FWD
-            opp_strength = match.get("opp_def", 1100)
-            
-        # Scale 1000 (weak) -> 1350 (elite)
-        # Max score per match is 20 / 3 = 6.66. The weaker the opponent, the better.
-        match_score = ((1350 - opp_strength) / 350.0) * (20.0 / 3.0)
-        total_fixture_score += match_score
-        
-    fixture_score = max(min(total_fixture_score, 20.0), 0.0)
-
-    # 4. REBALANCED SCORES
-    threat_score = min((ict_per_90 / 12.0) * 30, 30.0)
-    skill_score = min((bps_per_90 / 25.0) * 25, 25.0)
-    output_score = min((player["total_points"] / 200.0) * 25, 25.0)
-    
-    raw_index = threat_score + skill_score + output_score + fixture_score
-
-    # 5. The Reality Penalty (Minutes Smoothing)
-    minutes_penalty = min(player["minutes"] / 900.0, 1.0)
-    
-    final_index = raw_index * minutes_penalty
-
-    return round(final_index, 1)
 
 @app.get("/api/top-performers")
 def get_top_performers():
-    # 1. Grab databases from memory
-    master_data = fetch_master_fpl_data()
-    fixtures = fetch_upcoming_fixtures()
-    
-    all_players = master_data["elements"]
-    
-    # 2. Fast lookup for Team names and Team strength data
-    team_lookup = {team["id"]: team for team in master_data["teams"]}
-    
-    # 3. Figure out the next Gameweek matches
-    upcoming = [f for f in fixtures if f["event"] is not None]
-    if not upcoming:
-        return {"top_performers": []}
-    
-    team_next_3_matches = {}
-    for t_id in team_lookup.keys():
-        matches_data = []
-        for match in upcoming:
-            if match["team_h"] == t_id:
-                opp_id = match["team_a"]
-                opp_data = team_lookup[opp_id]
-                matches_data.append({
-                    "opp_def": opp_data.get("strength_defence_away") or 1100,
-                    "opp_atk": opp_data.get("strength_attack_away") or 1100
-                })
-            elif match["team_a"] == t_id:
-                opp_id = match["team_h"]
-                opp_data = team_lookup[opp_id]
-                matches_data.append({
-                    "opp_def": opp_data.get("strength_defence_home") or 1100,
-                    "opp_atk": opp_data.get("strength_attack_home") or 1100
-                })
-            if len(matches_data) == 3:
-                break
-        team_next_3_matches[t_id] = matches_data
-    
-    # 4. Run the Proprietary Algorithm on EVERY player in the league
-    for player in all_players:
-        team_id = player["team"]
-        
-        # Calculate and attach the custom index
-        player["performance_index"] = calculate_native_performer_index(
-            player=player, 
-            next_3_matches=team_next_3_matches.get(team_id, [{"opp_def": 1100, "opp_atk": 1100}] * 3)
-        )
-        
-    # 5. Sort by YOUR algorithm (Highest to Lowest)
-    all_players.sort(key=lambda x: x["performance_index"], reverse=True)
-    
-    # 6. Grab the Top 3 and format
-    top_3 = all_players[:3]
-    formatted_performers = []
-    
-    for index, player in enumerate(top_3):
-        team_short_name = team_lookup[player['team']]['short_name']
-        
-        formatted_performers.append({
-            "rank": index + 1,
-            "name": f"{player['first_name']} {player['second_name']}",
-            "team": f"{team_short_name} • £{player['now_cost'] / 10:.1f}m",
-            "performance_index": player["performance_index"], # Your proprietary score
-            "form": player["form"], 
-            "image_url": get_player_image_url(player["photo"].replace(".jpg", ""))
-        })
-        
-    return {"top_performers": formatted_performers}
+    master_data, projections = load_projections()
+    team_names = {team["id"]: team["short_name"] for team in master_data["teams"]}
+
+    return {
+        "top_performers": [
+            {
+                "rank": rank + 1,
+                "name": full_name(player),
+                "team": f"{team_names.get(player['team'], '')} • {format_price(player)}",
+                "performance_index": round(projections[player["id"]]["xp_horizon"], 1),
+                "xp_next": round(projections[player["id"]]["xp_next"], 1),
+                "form": player["form"],
+                "image_url": player_image(player),
+            }
+            for rank, player in enumerate(rank_by_xp(master_data["elements"], projections)[:3])
+        ]
+    }

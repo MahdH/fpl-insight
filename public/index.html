@@ -1,258 +1,212 @@
-<!DOCTYPE html>
-<html class="dark" lang="en">
-
+<!doctype html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Transfer Suggestions Home</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-        rel="stylesheet" />
-    <script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#13ec5b", "accent-blue": "#00f2ff", "accent-pink": "#ff00e5",
-                        "background-dark": "#0a0c0b", "card-dark": "#161b18", "border-dark": "#242a26", "text-muted": "#88998e",
-                    }, fontFamily: { "display": ["Lexend"] }, borderRadius: { "2xl": "1.25rem", "3xl": "1.75rem", }, backgroundImage: {
-                    'stadium': "url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Atleti_vs_Villarreal_-_September_2025.jpg/1280px-Atleti_vs_Villarreal_-_September_2025.jpg')",
-                }
-                }
-            },
-        }
-    </script>
-    <style type="text/tailwindcss">
-        body { background-color: theme('colors.background-dark'); }
-        .bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: minmax(160px, auto); gap: 12px; }
-        .bento-featured { grid-column: span 2; grid-row: span 3; }
-        .bento-wide { grid-column: span 2; }
-        
-        @media (min-width: 768px) {
-            .bento-grid { grid-template-columns: repeat(4, 1fr); gap: 24px; }
-            .bento-featured { grid-column: span 2; grid-row: span 2; }
-            .bento-wide { grid-column: span 2; }
-        }
-    </style>
-</head>
-
-<body class="font-display text-slate-100 min-h-screen pb-28">
-    <header
-        class="sticky top-0 z-30 flex items-center bg-background-dark/80 backdrop-blur-xl px-6 py-5 justify-between border-b border-border-dark">
-        <div class="flex items-center gap-3">
-            <div class="size-9 rounded-full bg-gradient-to-tr from-primary to-accent-blue p-[2px]">
-                <div class="w-full h-full rounded-full bg-background-dark flex items-center justify-center">
-                    <span class="material-symbols-outlined text-sm text-primary">analytics</span>
-                </div>
-            </div>
-            <h1 class="text-xl font-bold tracking-tight">Insight<span class="text-primary">.</span></h1>
-        </div>
-    </header>
-
-    <main class="max-w-md md:max-w-4xl lg:max-w-6xl mx-auto">
-        <div id="main-dashboard-grid" class="bento-grid p-4 md:p-6 lg:p-8">
-
-            <div
-                class="bento-featured relative overflow-hidden rounded-3xl bg-card-dark border border-border-dark flex flex-col">
-                <div class="relative flex-1 overflow-hidden group">
-                    <div id="pick-0-bg"
-                        class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110 opacity-60">
-                    </div>
-                    <div class="absolute inset-0 bg-gradient-to-t from-card-dark via-card-dark/40 to-transparent"></div>
-                    <div class="absolute top-4 left-4 flex flex-col gap-1">
-                        <span
-                            class="px-3 py-1 rounded-full bg-primary/20 backdrop-blur-md border border-primary/30 text-primary text-[10px] font-bold uppercase tracking-widest">Forwards
-                            Picks</span>
-                    </div>
-                    <div class="absolute bottom-0 left-0 w-full p-6">
-                        <div class="flex flex-col gap-0.5 mb-3">
-                            <span class="text-primary text-xs font-bold uppercase tracking-widest">Top Pick</span>
-                            <h2 id="pick-0-name" class="text-3xl font-bold">Loading...</h2>
-                            <p id="pick-0-sub" class="text-text-muted text-sm">Loading...</p>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 pt-3 border-t border-white/10">
-                            <div>
-                                <p class="text-[10px] text-text-muted uppercase font-bold">Projected</p>
-                                <p id="pick-0-proj" class="text-lg font-bold text-accent-blue">--</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] text-text-muted uppercase font-bold">Algorithm</p>
-                                <p id="pick-0-index" class="text-lg font-bold text-primary">--</p>
-                            </div>
-                            <div>
-                                <p class="text-[10px] text-text-muted uppercase font-bold">Ownership</p>
-                                <p id="pick-0-own" class="text-lg font-bold text-white">--</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-background-dark/40 border-t border-border-dark p-4 grid grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <div class="flex items-center gap-2">
-                            <div id="pick-1-bg"
-                                class="size-6 rounded-full bg-cover bg-center border border-border-dark"></div>
-                            <div>
-                                <p id="pick-1-name" class="text-[11px] font-bold leading-tight">--</p>
-                                <p class="text-[9px] text-text-muted">FWD</p>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-end">
-                            <div>
-                                <p class="text-[8px] text-text-muted uppercase font-bold">Score</p>
-                                <p id="pick-1-index" class="text-sm font-bold text-accent-blue leading-none">--</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="space-y-2 border-l border-border-dark pl-4">
-                        <div class="flex items-center gap-2">
-                            <div id="pick-2-bg"
-                                class="size-6 rounded-full bg-cover bg-center border border-border-dark"></div>
-                            <div>
-                                <p id="pick-2-name" class="text-[11px] font-bold leading-tight">--</p>
-                                <p class="text-[9px] text-text-muted">FWD</p>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-end">
-                            <div>
-                                <p class="text-[8px] text-text-muted uppercase font-bold">Score</p>
-                                <p id="pick-2-index" class="text-sm font-bold text-accent-blue leading-none">--</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div
-                class="rounded-3xl bg-card-dark border border-border-dark p-4 flex flex-col justify-between relative overflow-hidden">
-                <div class="absolute -right-4 -top-4 size-24 bg-red-500/10 blur-2xl rounded-full"></div>
-                <div class="relative z-10">
-                    <div
-                        class="size-10 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center mb-4">
-                        <span class="material-symbols-outlined text-red-500">trending_down</span>
-                    </div>
-                    <h3 class="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Transfer Out</h3>
-                    <p id="risk-name" class="font-bold text-lg leading-tight">Scanning...</p>
-                    <p id="risk-reason" class="text-red-400 text-[11px] font-medium mt-1 w-full truncate">--</p>
-                </div>
-                <div class="mt-auto flex items-center gap-2">
-                    <div id="risk-bg" class="size-8 rounded-full bg-cover bg-center border border-border-dark"></div>
-                    <span id="risk-chance"
-                        class="text-[10px] font-bold text-red-500 uppercase tracking-tighter">--</span>
-                </div>
-            </div>
-
-            <div
-                class="rounded-3xl bg-card-dark border border-border-dark p-4 flex flex-col justify-between relative overflow-hidden">
-                <div class="absolute -right-4 -top-4 size-24 bg-accent-blue/10 blur-2xl rounded-full"></div>
-                <div class="relative z-10">
-                    <div
-                        class="size-10 rounded-xl bg-accent-blue/20 border border-accent-blue/30 flex items-center justify-center mb-4">
-                        <span class="material-symbols-outlined text-accent-blue">event_upcoming</span>
-                    </div>
-                    <h3 class="text-xs font-bold text-text-muted uppercase tracking-widest mb-1">Target Fixture</h3>
-                    <p id="fixture-match" class="font-bold text-lg leading-tight">Loading...</p>
-                    <div id="fixture-dots" class="mt-2 flex gap-1">
-                    </div>
-                </div>
-                <p id="fixture-diff" class="text-[10px] text-primary font-bold uppercase mt-auto">--</p>
-            </div>
-
-            <div class="bento-wide rounded-3xl bg-card-dark border border-border-dark p-5">
-                <div class="flex justify-between items-center mb-5">
-                    <h3 class="font-bold text-lg tracking-tight">Top Performers</h3>
-                    <span
-                        class="text-[10px] font-bold text-primary uppercase border border-primary/30 px-2 py-0.5 rounded-full">LIVE</span>
-                </div>
-                <div id="performers-container" class="space-y-4">
-                    <p class="text-sm text-text-muted">Running performance algorithms...</p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- <div id="off-season-home" class="hidden min-h-screen w-full bg-stadium bg-cover bg-center bg-no-repeat flex flex-col items-center pt-20 px-4 pb-24 relative">
-    
-    <div class="absolute inset-0 bg-gradient-to-b from-black/80 via-black/40 to-black/90 z-0"></div>
-
-    <div class="relative z-10 w-full max-w-md flex flex-col gap-4">
-        
-        <div class="text-center mb-6">
-            <span class="bg-green-900/50 text-[#13ec5b] text-xs font-bold px-3 py-1 rounded-full border border-green-800 uppercase tracking-wider">Pre-Season Period</span>
-            <h1 class="text-white text-5xl font-extrabold mt-4 uppercase leading-none tracking-tight">Excited for the <br><span class="text-[#13ec5b]">26/27 Season?</span></h1>
-            <p class="text-gray-300 mt-4 text-sm px-4">We'll be back for the new season with enhanced metrics and real-time insights.</p>
-        </div>
-
-        <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-xl">
-            <p class="text-[#13ec5b] text-xs font-bold uppercase tracking-widest mb-2">Development Phase</p>
-            <h2 class="text-white text-2xl font-bold mb-2">Recoding the Arena...</h2>
-            <p class="text-gray-200 text-sm">Identify rising stars before they hit the headlines with our new AI trajectory modeling.</p>
-        </div>
-
-        <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 shadow-xl">
-            <p class="text-[#13ec5b] text-xs font-bold uppercase tracking-widest mb-2">Sneak Peak</p>
-            <h2 class="text-white text-xl font-bold mb-4">Watch a brief intro</h2>
-            <a href="https://youtube.com/shorts/x4cspy6Mb0o?feature=share" target="_blank" rel="noopener noreferrer" class="w-full bg-transparent border border-gray-500 text-white rounded-full py-3 flex items-center justify-center gap-2 hover:bg-white/10 transition">
-                <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M21.582,6.186c-0.23-0.86-0.908-1.538-1.768-1.768C18.254,4,12,4,12,4S5.746,4,4.186,4.418c-0.86,0.23-1.538,0.908-1.768,1.768C2,7.746,2,12,2,12s0,4.254,0.418,5.814c0.23,0.86,0.908,1.538,1.768,1.768C5.746,20,12,20,12,20s6.254,0,7.814-0.418c0.861-0.23,1.538-0.908,1.768-1.768C22,16.254,22,12,22,12S22,7.746,21.582,6.186z M10,15.464V8.536L16,12L10,15.464z"/>
-                </svg>
-                Watch On Youtube
-            </a>
-        </div>
-
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSe8TxXUDIyQR-J-uqHpUTHXfFm0Od3o3o1x6mXC9FPprxwTuw/viewform?usp=publish-editor"><div class="bg-[#ffe4e6] rounded-2xl p-6 shadow-xl mt-2 cursor-pointer hover:bg-pink-100 transition">
-            <div class="flex justify-between items-center mb-2">
-                <h2 class="text-pink-900 text-sm font-bold uppercase tracking-widest">Notify Me</h2>
-                <span class="text-pink-900">→</span>
-            </div>
-            <p class="text-pink-800 text-sm">Get alerted the moment the Transfer Lab doors swing open for the new season.</p>
-        </div>
-    </a>
-
-        <!-\- <div class="mt-6 text-center">
-            <button id="last-season-btn" class="text-black underline font-bold bg-transparent">Last Season</button>
-        </div> -\->
-
-    </div>
-        </div> -->
-
-    <div id="toast-notification" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 translate-y-full opacity-0 transition-all duration-300 bg-gray-800 text-white px-6 py-3 rounded-2xl md:rounded-full shadow-lg z-50 text-sm font-medium w-[90%] md:w-auto text-center">
-    </div>
-
-
-    <!-- Bottom Navigation -->
-    <nav
-        class="fixed bottom-0 left-0 w-full z-40 bg-background-dark/90 backdrop-blur-xl border-t border-border-dark px-8 py-4 md:auto-cols-min md:w-[400px] md:left-1/2 md:-translate-x-1/2 md:bottom-8 md:border md:rounded-full md:shadow-2xl md:shadow-primary/10">
-        <div class="max-w-md mx-auto flex justify-around items-center">
-            <a href="/" class="flex flex-col items-center gap-1 text-primary group">
-                <div class="relative">
-                    <span
-                        class="material-symbols-outlined text-3xl group-hover:-translate-y-1 transition-transform duration-300">science</span>
-                    <div
-                        class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary opacity-100 transition-opacity">
-                    </div>
-                </div>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-1">Transfer Lab</span>
-            </a>
-
-            <a id="nav-my-team" href="/my-team"
-                class="flex flex-col items-center gap-1 text-text-muted hover:text-slate-100 transition-colors group">
-                <div class="relative">
-                    <span
-                        class="material-symbols-outlined text-3xl group-hover:-translate-y-1 transition-transform duration-300">groups</span>
-                    <div
-                        class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
-                    </div>
-                </div>
-                <span class="text-[10px] font-bold uppercase tracking-widest mt-1">My Team</span>
-            </a>
-        </div>
-    </nav>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Transfer Lab · FPL Insight</title>
+    <meta name="description" content="Data-driven Fantasy Premier League picks, risks and fixtures, scored by FPL Insight's own algorithms." />
+    <meta name="theme-color" content="#f1f0ec" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23d9f1cc'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%230f0f0e' stroke-width='2.2'/%3E%3Cpath d='M16 4v5M16 23v5' stroke='%230f0f0e' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://resources.premierleague.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&display=swap" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script>document.documentElement.classList.add("js");</script>
     <script type="module" src="/src/app.js"></script>
-</body>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar" aria-label="Primary">
+            <a class="brand" href="/" aria-label="FPL Insight home">
+                <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="5.2"/><path d="M12 3v3.6M12 17.4V21"/></svg></span>
+                FPL Insight
+            </a>
+            <nav class="nav">
+                <p class="nav__label">Menu</p>
+                <a class="nav__item" href="/" aria-current="page"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-flask"/></svg>Transfer Lab</a>
+                <a class="nav__item" href="/my-team"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-users"/></svg>My Team</a>
+            </nav>
+            <div class="side-card">
+                <p class="side-card__row"><i class="pulse"></i><span class="js-season skel">26/27 season</span></p>
+                <p>Live data from the official Fantasy Premier League API.</p>
+            </div>
+        </aside>
 
+        <div class="shell">
+            <header class="topbar">
+                <a class="brand" href="/" aria-label="FPL Insight home">
+                    <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="5.2"/><path d="M12 3v3.6M12 17.4V21"/></svg></span>
+                    FPL Insight
+                </a>
+                <span class="chip chip--sm chip--season"><i class="pulse"></i><span class="js-season skel">26/27 season</span></span>
+            </header>
+
+            <main class="main" id="main">
+                <div class="dash">
+                    <header class="greet" data-reveal>
+                        <h1>
+                            <span class="greet__hello">Hello,</span>
+                            <strong class="greet__name">Manager.</strong>
+                        </h1>
+                        <p class="greet__sub">Here's your transfer edge today.</p>
+                    </header>
+
+                    <div class="meta" data-reveal>
+                        <span class="chip"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-calendar"/></svg><span id="today">Today</span></span>
+                    </div>
+
+                    <!-- Hero: Top forward pick -->
+                    <section class="hero" aria-labelledby="pick-0-name" data-reveal>
+                        <div class="hero__tag">
+                            <span class="chip"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-target"/></svg>Top pick · Forwards</span>
+                        </div>
+
+                        <div class="stage">
+                            <div class="stage__glow" aria-hidden="true"></div>
+                            <svg class="stage__rings" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                <circle cx="50" cy="42" r="27" />
+                                <circle cx="50" cy="42" r="39" />
+                                <circle cx="50" cy="42" r="51" />
+                            </svg>
+                            <img id="pick-0-img" class="stage__photo" alt="" width="500" height="500" decoding="async" fetchpriority="high" />
+
+                            <svg class="stage__lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                <line x1="16" y1="22" x2="31" y2="62" />
+                                <line x1="84" y1="21" x2="69" y2="55" />
+                                <line x1="87" y1="43" x2="79" y2="68" />
+                            </svg>
+                            <span class="marker" style="--mx: 31%; --my: 62%"></span>
+                            <span class="marker" style="--mx: 69%; --my: 55%"></span>
+                            <span class="marker" style="--mx: 79%; --my: 68%"></span>
+
+                            <div class="callout" style="--x: 3%; --y: 6%">
+                                <span class="callout__label">Algorithm</span>
+                                <strong class="callout__value"><span id="pick-0-index" class="skel">00.0</span><small>xP</small></strong>
+                                <span class="callout__status">Next 5 gameweeks</span>
+                            </div>
+                            <div class="callout callout--r" style="--x: 3%; --y: 3%">
+                                <span class="callout__label">Projected</span>
+                                <strong class="callout__value"><span id="pick-0-proj" class="skel">0.0</span><small>pts</small></strong>
+                                <span class="callout__status">FPL · next GW</span>
+                            </div>
+                            <div class="callout callout--r" style="--x: 1%; --y: 25%">
+                                <span class="callout__label">Ownership</span>
+                                <strong class="callout__value"><span id="pick-0-own" class="skel">00.0</span><small>%</small></strong>
+                                <span class="callout__status">Selected by</span>
+                            </div>
+                        </div>
+
+                        <div class="hero__id">
+                            <h2 id="pick-0-name" class="hero__name skel">Loading player</h2>
+                            <p id="pick-0-sub" class="hero__sub">FWD</p>
+                        </div>
+                    </section>
+
+                    <!-- Insight cards -->
+                    <div class="cards">
+                        <article class="card card--rose risk span-2" data-reveal>
+                            <div class="card__top">
+                                <span class="label">Transfer out</span>
+                                <span class="badge"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-trend-down"/></svg></span>
+                            </div>
+                            <div class="risk__who">
+                                <span class="avatar avatar--lg" id="risk-avatar"><img id="risk-img" alt="" /></span>
+                                <div>
+                                    <p id="risk-name" class="risk__name skel">Scanning squad</p>
+                                    <p id="risk-reason" class="risk__reason skel">Checking injury news and availability</p>
+                                </div>
+                            </div>
+                            <div class="risk__foot" id="risk-foot">
+                                <div>
+                                    <span class="label-sm">Chance of playing</span>
+                                    <p class="metric"><span id="risk-chance" class="skel">00</span><small>%</small></p>
+                                </div>
+                                <svg class="gauge" viewBox="0 0 100 56" aria-hidden="true">
+                                    <path class="gauge__track" pathLength="100" d="M10 50A40 40 0 0 1 90 50" />
+                                    <path id="risk-gauge" class="gauge__val" pathLength="100" d="M10 50A40 40 0 0 1 90 50" />
+                                </svg>
+                            </div>
+                        </article>
+
+                        <article class="card card--green fixture span-2" data-reveal>
+                            <svg class="card__deco" viewBox="0 0 100 100" aria-hidden="true">
+                                <circle cx="70" cy="70" r="16" /><circle cx="70" cy="70" r="30" /><circle cx="70" cy="70" r="44" /><circle cx="70" cy="70" r="58" />
+                            </svg>
+                            <div class="card__top">
+                                <span class="label">Target fixture</span>
+                                <span class="badge"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-calendar"/></svg></span>
+                            </div>
+                            <p id="fixture-match" class="fixture__match skel">ARS vs LEE</p>
+                            <div class="fixture__foot">
+                                <div id="fixture-dots" class="segments" role="img" aria-label="Fixture difficulty">
+                                    <i></i><i></i><i></i><i></i><i></i>
+                                </div>
+                                <p id="fixture-diff" class="label-sm">Difficulty · lower is easier</p>
+                            </div>
+                        </article>
+
+                        <article class="card card--peach pick pick--peach" data-reveal>
+                            <div class="card__top">
+                                <span class="label">Pick #2</span>
+                                <span class="badge"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-target"/></svg></span>
+                            </div>
+                            <div class="pick__who">
+                                <span class="avatar avatar--lg"><img id="pick-1-img" alt="" /></span>
+                                <div>
+                                    <p id="pick-1-name" class="pick__name skel">Loading name</p>
+                                    <p class="label-sm">FWD</p>
+                                </div>
+                            </div>
+                            <div class="pick__foot">
+                                <span class="label-sm">xP · next 5 GWs</span>
+                                <p class="metric"><span id="pick-1-index" class="skel">00.0</span></p>
+                                <div class="bar"><i id="pick-1-bar"></i></div>
+                            </div>
+                        </article>
+
+                        <article class="card pick" data-reveal>
+                            <div class="card__top">
+                                <span class="label">Pick #3</span>
+                                <span class="badge"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-target"/></svg></span>
+                            </div>
+                            <div class="pick__who">
+                                <span class="avatar avatar--lg"><img id="pick-2-img" alt="" /></span>
+                                <div>
+                                    <p id="pick-2-name" class="pick__name skel">Loading name</p>
+                                    <p class="label-sm">FWD</p>
+                                </div>
+                            </div>
+                            <div class="pick__foot">
+                                <span class="label-sm">xP · next 5 GWs</span>
+                                <p class="metric"><span id="pick-2-index" class="skel">00.0</span></p>
+                                <div class="bar"><i id="pick-2-bar"></i></div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <!-- Top performers -->
+                    <section class="card perf" aria-labelledby="perf-title" data-reveal>
+                        <div class="perf__head">
+                            <h3 id="perf-title" class="perf__title">Top performers</h3>
+                            <span class="chip chip--sm"><i class="pulse"></i>Live</span>
+                        </div>
+                        <ol id="performers-container" class="perf__list" aria-busy="true">
+                            <li class="perf__item" aria-hidden="true"><span class="skel" style="width: 100%; height: 52px"></span></li>
+                            <li class="perf__item" aria-hidden="true"><span class="skel" style="width: 100%; height: 52px"></span></li>
+                            <li class="perf__item" aria-hidden="true"><span class="skel" style="width: 100%; height: 52px"></span></li>
+                        </ol>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+        <nav class="mobile-nav" aria-label="Primary">
+            <a href="/" aria-current="page"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-flask"/></svg>Transfer Lab</a>
+            <a href="/my-team"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-users"/></svg>My Team</a>
+        </nav>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
 </html>

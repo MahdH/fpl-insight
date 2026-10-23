@@ -1,283 +1,123 @@
-<!DOCTYPE html>
-<html class="dark" lang="en">
-
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-  <title>My Team | Transfer Lab</title>
-  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-    rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-    rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          "colors": {
-            "surface-container-high": "#2e313d", "surface-bright": "#383942", "surface-variant": "#4d4648",
-            "surface-dim": "#111318", "error-dim": "#ffb4ab", "surface-container-lowest": "#0c0e13",
-            "outline": "#9a8f92", "surface-container-low": "#1a1c22", "surface-container-highest": "#33353e",
-            "error": "#ffb4ab", "inverse-on-surface": "#2f3036", "on-surface": "#e3e2e6",
-            "outline-variant": "#4d4648", "surface": "#111318", "primary": "#F2055C",
-            "on-surface-variant": "#cfc4c7", "surface-container": "#1e2026", "background": "#111318",
-            "on-background": "#e3e2e6",
-          },
-          "fontFamily": {
-            "headline": ["Lexend", "Inter"], "body": ["Inter"], "label": ["Inter"]
-          }
-        },
-      },
-    }
-  </script>
-  <style>
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
-
-    .pitch-gradient {
-      background: linear-gradient(180deg, #05F26C 0%, #048a3e 100%);
-    }
-
-    body {
-      min-height: max(884px, 100dvh);
-    }
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>My Team · FPL Insight</title>
+    <meta name="description" content="Load your Fantasy Premier League squad and get smart transfer targets from FPL Insight." />
+    <meta name="theme-color" content="#f1f0ec" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23d9f1cc'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%230f0f0e' stroke-width='2.2'/%3E%3Cpath d='M16 4v5M16 23v5' stroke='%230f0f0e' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://resources.premierleague.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&display=swap" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <script>document.documentElement.classList.add("js");</script>
+    <script type="module" src="/src/my-team.js"></script>
 </head>
+<body>
+    <div class="app">
+        <aside class="sidebar" aria-label="Primary">
+            <a class="brand" href="/" aria-label="FPL Insight home">
+                <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="5.2"/><path d="M12 3v3.6M12 17.4V21"/></svg></span>
+                FPL Insight
+            </a>
+            <nav class="nav">
+                <p class="nav__label">Menu</p>
+                <a class="nav__item" href="/"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-flask"/></svg>Transfer Lab</a>
+                <a class="nav__item" href="/my-team" aria-current="page"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-users"/></svg>My Team</a>
+            </nav>
+            <div class="side-card">
+                <p class="side-card__row"><i class="pulse"></i><span class="js-season skel">26/27 season</span></p>
+                <p>Live data from the official Fantasy Premier League API.</p>
+            </div>
+        </aside>
 
-<body class="bg-background text-on-background font-body min-h-screen transition-colors duration-300 pb-28">
-  <header
-    class="sticky top-0 z-50 flex items-center bg-background/80 backdrop-blur-xl px-6 py-5 justify-between border-b border-outline-variant/30">
-    <div class="flex items-center gap-3">
-      <div class="size-9 rounded-full bg-gradient-to-tr from-[#13ec5b] to-[#00f2ff] p-[2px]">
-        <div class="w-full h-full rounded-full bg-background flex items-center justify-center">
-          <span class="material-symbols-outlined text-sm text-[#13ec5b]">analytics</span>
-        </div>
-      </div>
-      <h1 class="text-xl font-bold tracking-tight font-['Lexend']">FPL Insight<span class="text-[#13ec5b]">.</span></h1>
-    </div>
-  </header>
+        <div class="shell">
+            <header class="topbar">
+                <a class="brand" href="/" aria-label="FPL Insight home">
+                    <span class="brand__mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="5.2"/><path d="M12 3v3.6M12 17.4V21"/></svg></span>
+                    FPL Insight
+                </a>
+                <span class="chip chip--sm chip--season"><i class="pulse"></i><span class="js-season skel">26/27 season</span></span>
+            </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-6 md:p-8">
+            <main class="main" id="main">
+                <div class="team">
+                    <div class="team__intro">
+                        <header class="greet" data-reveal>
+                            <h1>
+                                <span class="greet__hello">Your lineup,</span>
+                                <strong class="greet__name">My Team.</strong>
+                            </h1>
+                            <p class="greet__sub">Enter your FPL Team ID to see your squad and the exact transfers to make.</p>
+                        </header>
 
-    <div class="mb-6 flex gap-3 max-w-xl">
-      <input type="number" id="manager-id-input" placeholder="Enter FPL Team ID (e.g., 43024)"
-        class="flex-1 bg-surface-container rounded-xl px-4 py-3 text-sm text-white border border-outline-variant/30 focus:border-primary focus:ring-1 focus:ring-primary outline-none">
-      <button onclick="loadManagerTeam()"
-        class="bg-primary text-white font-bold px-6 py-3 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center gap-2">
-        <span class="material-symbols-outlined text-[20px]">search</span>
-        Load
-      </button>
-    </div>
-
-    <div class="flex items-center justify-between mb-6 bg-surface-container p-4 rounded-xl shadow-sm">
-      <div>
-        <h2 id="gw-label" class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-1">Game Week --
-        </h2>
-        <div class="flex items-baseline gap-2">
-          <span class="text-3xl font-black text-on-surface" id="team-id-display">Live</span>
-          <span class="text-sm font-bold text-primary">SQUAD</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Desktop Grid Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-
-      <!-- Left Column: The Pitch (Spans 2 columns on desktop) -->
-      <div class="lg:col-span-2">
-        <section
-          class="relative w-full aspect-[3/4] md:aspect-[4/3] pitch-gradient rounded-3xl overflow-hidden shadow-2xl mb-8 p-4 flex flex-col justify-between">
-          <div class="absolute inset-4 border-2 border-white/20 rounded-2xl pointer-events-none"></div>
-          <div class="absolute top-1/2 left-0 right-0 h-px bg-white/20 pointer-events-none"></div>
-          <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/20 rounded-full pointer-events-none">
-          </div>
-
-          <div id="pitch-fwd" class="relative z-10 flex justify-center gap-8 md:gap-16 pt-4 h-[120px]">
-            <p class="text-white/50 text-sm my-auto">Enter ID to load Strikers</p>
-          </div>
-          <div id="pitch-mid" class="relative z-10 flex justify-around px-4 h-[120px]"></div>
-          <div id="pitch-def" class="relative z-10 flex justify-around px-2 h-[120px]"></div>
-          <div id="pitch-gk" class="relative z-10 flex justify-center pb-4 h-[120px]"></div>
-        </section>
-      </div>
-
-      <!-- Right Column: Sidebar (Bench & AI Targets) -->
-      <div class="flex flex-col gap-6 lg:gap-8">
-        <section class="bg-surface-container rounded-3xl p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-black text-on-surface uppercase tracking-tight">The Bench</h3>
-            <span
-              class="px-2 py-1 bg-surface-container-high rounded-full text-[10px] font-bold text-on-surface-variant uppercase">Substitutes</span>
-          </div>
-          <div id="bench-container" class="grid grid-cols-4 lg:grid-cols-2 gap-2 md:gap-4">
-            <p class="text-on-surface-variant text-sm col-span-4 lg:col-span-2">Waiting for squad data...</p>
-          </div>
-        </section>
-
-        <section
-          class="bg-surface-container rounded-3xl p-6 relative overflow-hidden border border-[#13ec5b]/20 flex-1">
-          <div class="absolute -right-10 -top-10 size-40 bg-[#13ec5b]/10 blur-3xl rounded-full pointer-events-none">
-          </div>
-
-          <div class="flex items-center justify-between mb-5 relative z-10">
-            <h3 class="text-lg font-black text-on-surface uppercase tracking-tight">AI Targets</h3>
-            <span
-              class="px-2 py-1 bg-[#13ec5b]/20 text-[#13ec5b] border border-[#13ec5b]/30 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
-              <span class="material-symbols-outlined text-[12px]">auto_awesome</span> Recommended
-            </span>
-          </div>
-          <div id="suggestions-container" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-1 gap-3 relative z-10">
-            <p class="text-on-surface-variant text-sm col-span-3 lg:col-span-1">Enter ID to scan the transfer market...
-            </p>
-          </div>
-        </section>
-      </div>
-    </div>
-  </main>
-
-  <!-- Bottom Navigation -->
-  <nav
-    class="fixed bottom-0 left-0 w-full z-40 bg-surface-container-lowest/90 backdrop-blur-xl border-t border-outline-variant/20 px-8 py-4 md:auto-cols-min md:w-[400px] md:left-1/2 md:-translate-x-1/2 md:bottom-8 md:border md:rounded-full md:shadow-2xl md:shadow-primary/10">
-    <div class="max-w-md mx-auto flex justify-around items-center">
-      <a href="/"
-        class="flex flex-col items-center gap-1 text-on-surface-variant hover:text-white transition-colors group">
-        <div class="relative">
-          <span
-            class="material-symbols-outlined text-3xl group-hover:-translate-y-1 transition-transform duration-300">science</span>
-          <div
-            class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity">
-          </div>
-        </div>
-        <span class="text-[10px] font-bold uppercase tracking-widest mt-1">Transfer Lab</span>
-      </a>
-
-      <a href="/my-team" class="flex flex-col items-center gap-1 text-primary group">
-        <div class="relative">
-          <span class="material-symbols-outlined text-3xl group-hover:-translate-y-1 transition-transform duration-300"
-            style="font-variation-settings: 'FILL' 1;">groups</span>
-          <div
-            class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary opacity-100 transition-opacity">
-          </div>
-        </div>
-        <span class="text-[10px] font-bold uppercase tracking-widest mt-1">My Team</span>
-      </a>
-    </div>
-  </nav>
-
-  <script>
-    async function loadManagerTeam() {
-      const managerId = document.getElementById('manager-id-input').value;
-      if (!managerId) {
-        alert("Please enter a valid FPL Manager ID.");
-        return;
-      }
-
-      // 1. Set all sections to a loading state
-      document.getElementById('pitch-fwd').innerHTML = '';
-      document.getElementById('pitch-mid').innerHTML = '<p class="text-white/80 font-bold text-center w-full mt-4">Fetching Squad Data...</p>';
-      document.getElementById('pitch-def').innerHTML = '';
-      document.getElementById('pitch-gk').innerHTML = '';
-      document.getElementById('bench-container').innerHTML = '';
-      document.getElementById('suggestions-container').innerHTML = '<p class="text-[#13ec5b] font-bold text-sm w-full">Running Set Difference Algorithm...</p>';
-      document.getElementById('team-id-display').textContent = "...";
-
-      try {
-        // 2. The Asynchronous Handshake: Fetch BOTH endpoints concurrently
-        const [teamRes, suggestionsRes] = await Promise.all([
-          fetch(`/api/my-team/${managerId}`),
-          fetch(`/api/transfer-suggestions/${managerId}`)
-        ]);
-
-        const teamData = await teamRes.json();
-        const suggestionsData = await suggestionsRes.json();
-
-        if (teamData.error) throw new Error(teamData.error);
-
-        // 3. Populate Header
-        document.getElementById('gw-label').textContent = `Game Week ${teamData.gameweek}`;
-        document.getElementById('team-id-display').textContent = teamData.manager_id;
-
-        // 4. Populate Pitch (Sort by position)
-        const starters = teamData.squad.starting_xi;
-        document.getElementById('pitch-fwd').innerHTML = starters.filter(p => p.position === 4).map(p => createPlayerCard(p)).join('');
-        document.getElementById('pitch-mid').innerHTML = starters.filter(p => p.position === 3).map(p => createPlayerCard(p)).join('');
-        document.getElementById('pitch-def').innerHTML = starters.filter(p => p.position === 2).map(p => createPlayerCard(p)).join('');
-        document.getElementById('pitch-gk').innerHTML = starters.filter(p => p.position === 1).map(p => createPlayerCard(p)).join('');
-
-        // 5. Populate Bench
-        document.getElementById('bench-container').innerHTML = teamData.squad.bench.map(p => createBenchCard(p)).join('');
-
-        // 6. Populate AI Suggestions
-        if (suggestionsData.suggestions && suggestionsData.suggestions.length > 0) {
-          document.getElementById('suggestions-container').innerHTML = suggestionsData.suggestions.map(p => createSuggestionCard(p)).join('');
-        } else {
-          document.getElementById('suggestions-container').innerHTML = '<p class="text-on-surface-variant text-sm col-span-3">No suggestions found.</p>';
-        }
-
-      } catch (error) {
-        console.error(error);
-        alert("Could not load team. Check the ID and try again.");
-        document.getElementById('pitch-mid').innerHTML = '<p class="text-red-300 font-bold text-center w-full mt-4">Error loading team.</p>';
-        document.getElementById('suggestions-container').innerHTML = '<p class="text-red-300 text-sm">Engine failed to run.</p>';
-      }
-    }
-
-    function createPlayerCard(player) {
-      let badgeHtml = '';
-      if (player.is_captain) {
-        badgeHtml = `<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-pink-600 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">C</div>`;
-      } else if (player.is_vice_captain) {
-        badgeHtml = `<div class="absolute -bottom-1 -right-1 w-6 h-6 bg-slate-400 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white">V</div>`;
-      }
-
-      return `
-            <div class="flex flex-col items-center w-16 md:w-20">
-                <div class="relative">
-                    <div class="w-12 h-12 md:w-16 md:h-16 bg-white rounded-full flex items-center justify-center shadow-lg border-2 border-white overflow-hidden">
-                        <img class="w-full h-full object-cover" src="${player.image_url}" alt="${player.name}" onerror="this.src='https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png'"/>
+                        <div class="card card--green gw" data-reveal>
+                            <div class="gw__main">
+                                <p id="gw-label" class="label-sm">Game Week --</p>
+                                <p id="team-name" class="gw__name">Your squad</p>
+                                <p id="team-meta" class="gw__meta">Enter a Team ID to begin</p>
+                            </div>
+                            <span class="badge"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-users"/></svg></span>
+                        </div>
                     </div>
-                    ${badgeHtml}
-                </div>
-                <span class="mt-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-sm text-white text-[9px] md:text-[10px] font-bold rounded uppercase truncate w-full text-center">${player.name}</span>
-                <span class="text-white text-[9px] md:text-[10px] font-bold mt-0.5 drop-shadow-md">${player.price}</span>
-            </div>`;
-    }
 
-    function createBenchCard(player) {
-      const posMap = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" };
-      return `
-            <div class="bg-surface-container-highest p-2 rounded-2xl flex flex-col items-center shadow-sm">
-                <div class="w-10 h-10 bg-surface-container-low rounded-full overflow-hidden mb-2 border-2 border-outline-variant/10">
-                    <img class="w-full h-full object-cover" src="${player.image_url}" alt="${player.name}" onerror="this.src='https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png'"/>
-                </div>
-                <span class="text-[9px] font-black uppercase text-on-surface truncate w-full text-center">${player.name}</span>
-                <span class="text-[8px] font-medium text-on-surface-variant">${posMap[player.position]} • ${player.price}</span>
-            </div>`;
-    }
+                    <form id="manager-form" class="card finder" data-reveal novalidate>
+                        <label class="visually-hidden" for="manager-id-input">FPL Team ID</label>
+                        <input type="number" id="manager-id-input" inputmode="numeric" min="1" autocomplete="off" placeholder="Enter FPL Team ID (e.g., 43024)" />
+                        <button class="btn btn--dark" type="submit"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-search"/></svg>Load</button>
+                    </form>
 
-    // NEW: Function to render the AI target cards
-    function createSuggestionCard(player) {
-      const posMap = { 1: "GK", 2: "DEF", 3: "MID", 4: "FWD" };
-      return `
-            <div class="bg-surface-container-highest p-3 rounded-2xl flex items-center gap-3 shadow-sm border border-outline-variant/10 hover:border-[#13ec5b]/50 transition-colors">
-                <div class="w-12 h-12 bg-surface-container-low rounded-full overflow-hidden border-2 border-[#13ec5b]/30 shrink-0">
-                    <img class="w-full h-full object-cover" src="${player.image_url}" alt="${player.name}" onerror="this.src='https://resources.premierleague.com/premierleague/photos/players/110x140/Photo-Missing.png'"/>
+                    <div class="team__body">
+                        <section class="card card--green pitch" aria-label="Starting XI" data-reveal>
+                            <span class="pitch__line pitch__line--outer" aria-hidden="true"></span>
+                            <span class="pitch__line pitch__line--half" aria-hidden="true"></span>
+                            <span class="pitch__line pitch__line--circle" aria-hidden="true"></span>
+                            <span class="pitch__line pitch__line--box-top" aria-hidden="true"></span>
+                            <span class="pitch__line pitch__line--box-bottom" aria-hidden="true"></span>
+
+                            <div id="pitch-gk" class="pitch__row"></div>
+                            <div id="pitch-def" class="pitch__row"></div>
+                            <div id="pitch-mid" class="pitch__row"></div>
+                            <div id="pitch-fwd" class="pitch__row"></div>
+
+                            <p id="pitch-empty" class="pitch__empty">Enter your Team ID to load your squad</p>
+                        </section>
+
+                        <div class="team__side">
+                            <section class="card" aria-labelledby="bench-title" data-reveal>
+                                <div class="panel__head">
+                                    <h2 id="bench-title" class="panel__title">The Bench</h2>
+                                    <span class="chip chip--sm"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-bench"/></svg>Substitutes</span>
+                                </div>
+                                <div id="bench-container" class="bench">
+                                    <p class="state-msg">Waiting for squad data…</p>
+                                </div>
+                            </section>
+
+                            <section class="card card--green" aria-labelledby="targets-title" data-reveal>
+                                <div class="panel__head">
+                                    <h2 id="targets-title" class="panel__title">Suggested Transfers</h2>
+                                    <span class="chip chip--sm"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-sparkle"/></svg><span id="bank-chip">Recommended</span></span>
+                                </div>
+                                <div id="suggestions-container" class="swaps">
+                                    <p class="state-msg">Enter your ID to find the best swaps for your squad…</p>
+                                </div>
+                                <p id="transfer-note" class="note" hidden>Based on current prices and your bank. Your actual selling prices can differ, and free transfers aren't counted.</p>
+                            </section>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-black uppercase text-on-surface truncate">${player.name}</p>
-                    <p class="text-[10px] font-medium text-on-surface-variant">${posMap[player.position]} • ${player.price}</p>
-                </div>
-                <div class="text-right shrink-0">
-                    <p class="text-sm font-bold text-[#13ec5b]">${player.suggestion_score}</p>
-                    <p class="text-[8px] text-on-surface-variant uppercase font-bold tracking-widest">Index</p>
-                </div>
-            </div>`;
-    }
-  </script>
+            </main>
+        </div>
+
+        <nav class="mobile-nav" aria-label="Primary">
+            <a href="/"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-flask"/></svg>Transfer Lab</a>
+            <a href="/my-team" aria-current="page"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-users"/></svg>My Team</a>
+        </nav>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
-
 </html>
