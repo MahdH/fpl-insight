@@ -24,6 +24,8 @@ Run tests: `./venv/bin/python -m pytest`
 
 ## Layout
 
-- `app/main.py`: API routes and caching. `app/model.py`: expected-points model. `app/transfers.py`: squad-aware transfer swaps.
+- `app/main.py`: API routes and caching. `app/model.py`: expected-points (xP) model.
+- `app/squad.py`: exact squad optimiser (mixed-integer, SciPy/HiGHS) enforcing budget, 3-per-club, squad shape and formations. SciPy is imported lazily inside `optimize_squad` (about 1s) so only plan requests pay for it.
+- `app/planner.py`: turns a squad + chip + transfer count into a plan (swaps, proposed squad, hits). `app/manager.py`: free transfers (replayed from history, validated against real managers) and chip availability.
 - `public/`: pages and assets, served from Vercel's CDN. `public/src/` holds `styles.css`, `ui.js`, `app.js` (dashboard) and `my-team.js`.
 - `vercel.json` only sets `cleanUrls`. Vercel auto-detects `app/main.py` as the FastAPI entrypoint, so there is no `api/` folder and no rewrites.

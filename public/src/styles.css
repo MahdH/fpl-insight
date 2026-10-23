@@ -106,6 +106,11 @@ svg {
     border-radius: 10px;
 }
 
+/* Component classes set `display`, which would otherwise override the hidden attribute. */
+[hidden] {
+    display: none !important;
+}
+
 .visually-hidden {
     position: absolute !important;
     width: 1px;
@@ -1683,6 +1688,361 @@ svg {
     font-size: 12px;
     line-height: 1.45;
     color: #3f6b49;
+}
+
+/* Plan controls: chip picker and transfer count */
+
+.controls {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 16px;
+    transition: opacity 0.25s var(--ease);
+}
+
+.controls.is-busy {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.field {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.field__label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+}
+
+.field__hint {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #3f6b49;
+}
+
+.chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.chip-btn {
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid rgba(20, 20, 18, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.62);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background 0.25s var(--ease), color 0.25s var(--ease), border-color 0.25s var(--ease),
+        transform 0.18s var(--ease);
+}
+
+@media (hover: hover) {
+    .chip-btn:not(:disabled):not([aria-checked="true"]):hover {
+        background: #fff;
+        color: var(--ink);
+    }
+}
+
+.chip-btn:not(:disabled):active {
+    transform: scale(0.95);
+}
+
+.chip-btn[aria-checked="true"] {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: #fff;
+}
+
+.chip-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.chip-btn--used {
+    text-decoration: line-through;
+}
+
+.select {
+    position: relative;
+}
+
+.select select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    height: 46px;
+    padding: 0 42px 0 16px;
+    border: 1px solid rgba(20, 20, 18, 0.1);
+    border-radius: var(--r-sm);
+    background: rgba(255, 255, 255, 0.72);
+    font-size: 16px; /* prevents iOS focus zoom */
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    transition: box-shadow 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.select select:focus-visible {
+    outline: none;
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px rgba(20, 20, 18, 0.14);
+}
+
+.select select:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.select__icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--ink-2);
+}
+
+/* Plan summary, chip detail and notes */
+
+.summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.summary__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 12px;
+    border-radius: var(--r-sm);
+    background: rgba(255, 255, 255, 0.62);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+}
+
+.summary__stat strong {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+    color: var(--green-ink);
+}
+
+.summary__stat:nth-child(2) strong {
+    color: var(--ink);
+}
+
+.summary__stat.is-negative strong {
+    color: var(--rose-ink);
+}
+
+.info {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 14px;
+    border-radius: var(--r-md);
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.info > div {
+    min-width: 0;
+}
+
+.info__title {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.info__text {
+    margin-top: 2px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-2);
+}
+
+.info__text b {
+    font-weight: 600;
+    color: var(--green-ink);
+}
+
+.notes {
+    display: grid;
+    gap: 6px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.notes li {
+    position: relative;
+    padding-left: 16px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: #3f6b49;
+}
+
+.notes li::before {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 0.55em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green-dot);
+}
+
+/* Compact swap rows, for plans with many transfers (Wildcard, Free Hit) */
+
+.swaps--compact {
+    gap: 8px;
+}
+
+.swap-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 6px;
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+    background: rgba(255, 255, 255, 0.66);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.75);
+    animation: pop 0.5s var(--ease) backwards;
+    animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+.swap-row .avatar {
+    --s: 34px;
+    border-width: 2px;
+}
+
+.swap-row__who {
+    min-width: 0;
+}
+
+.swap-row .swap__name {
+    font-size: 13px;
+}
+
+.swap-row .swap__meta {
+    font-size: 11px;
+}
+
+.swap-row__arrow {
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+}
+
+.swap-row__arrow .icon {
+    width: 16px;
+    height: 16px;
+}
+
+.swap-row__reason {
+    grid-column: 1 / -1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 11.5px;
+    line-height: 1.35;
+    color: var(--muted);
+}
+
+.swap-row__reason b {
+    font-weight: 600;
+    color: var(--ink-2);
+}
+
+/* Squad preview toggle and "new player" markers */
+
+.team__main {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+}
+
+@media (min-width: 1024px) {
+    /* Keep the squad in view while scrolling a long list of transfers. */
+    .team__main {
+        position: sticky;
+        top: 24px;
+    }
+}
+
+.segmented {
+    display: inline-flex;
+    justify-self: start;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 0 0 1px var(--line);
+}
+
+.segmented button {
+    height: 34px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.3s var(--ease), color 0.3s var(--ease), transform 0.18s var(--ease);
+}
+
+.segmented button:active {
+    transform: scale(0.96);
+}
+
+.segmented button[aria-pressed="true"] {
+    background: var(--ink);
+    color: #fff;
+}
+
+.player--new .avatar {
+    box-shadow: 0 0 0 3px var(--green-dot), 0 6px 14px -6px rgba(20, 20, 18, 0.4);
+}
+
+.player__new {
+    position: absolute;
+    left: -8px;
+    top: -4px;
+    padding: 1px 6px;
+    border: 2px solid #fff;
+    border-radius: 99px;
+    background: var(--green-ink);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
+}
+
+.bench__item--new {
+    box-shadow: inset 0 0 0 2px var(--green-dot);
 }
 
 .state-msg {

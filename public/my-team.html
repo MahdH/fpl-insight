@@ -70,6 +70,11 @@
                     </form>
 
                     <div class="team__body">
+                        <div class="team__main">
+                        <div id="pitch-toggle" class="segmented" role="group" aria-label="Squad to show" hidden>
+                            <button type="button" data-view="current" aria-pressed="true">Current squad</button>
+                            <button type="button" data-view="plan" id="pitch-toggle-plan" aria-pressed="false">After transfers</button>
+                        </div>
                         <section class="card card--green pitch" aria-label="Starting XI" data-reveal>
                             <span class="pitch__line pitch__line--outer" aria-hidden="true"></span>
                             <span class="pitch__line pitch__line--half" aria-hidden="true"></span>
@@ -84,6 +89,7 @@
 
                             <p id="pitch-empty" class="pitch__empty">Enter your Team ID to load your squad</p>
                         </section>
+                        </div>
 
                         <div class="team__side">
                             <section class="card" aria-labelledby="bench-title" data-reveal>
@@ -101,10 +107,28 @@
                                     <h2 id="targets-title" class="panel__title">Suggested Transfers</h2>
                                     <span class="chip chip--sm"><svg class="icon" aria-hidden="true"><use href="/src/icons.svg#i-sparkle"/></svg><span id="bank-chip">Recommended</span></span>
                                 </div>
-                                <div id="suggestions-container" class="swaps">
+                                <div id="plan-controls" class="controls" hidden>
+                                    <div class="field">
+                                        <span class="field__label" id="chip-label">Chip</span>
+                                        <div id="chip-group" class="chip-group" role="radiogroup" aria-labelledby="chip-label"></div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="field__label" for="transfer-count">Transfers</label>
+                                        <div class="select">
+                                            <select id="transfer-count"></select>
+                                            <svg class="icon select__icon" aria-hidden="true"><use href="/src/icons.svg#i-chevron-down"/></svg>
+                                        </div>
+                                        <p id="transfer-hint" class="field__hint"></p>
+                                    </div>
+                                </div>
+
+                                <div id="plan-summary" class="summary" hidden></div>
+                                <div id="plan-highlight" class="info" hidden></div>
+                                <div id="suggestions-container" class="swaps" aria-live="polite">
                                     <p class="state-msg">Enter your ID to find the best swaps for your squad…</p>
                                 </div>
-                                <p id="transfer-note" class="note" hidden>Based on current prices and your bank. Your actual selling prices can differ, and free transfers aren't counted.</p>
+                                <ul id="plan-notes" class="notes" hidden></ul>
+                                <p id="transfer-note" class="note" hidden>Based on current prices and your bank. Your actual selling prices can differ.</p>
                             </section>
                         </div>
                     </div>

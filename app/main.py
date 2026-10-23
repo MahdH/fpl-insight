@@ -1,16 +1,19 @@
 from pathlib import Path
 from threading import Lock
+from typing import Literal, Optional
 
 import requests
 from cachetools import TTLCache, cached
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.analyzer import get_player_image_url
+from app.manager import CHIP_ORDER, chip_availability, free_transfers, max_free_transfers
 from app.model import expected_goals, neutral_rating, next_gameweek, project_players, team_ratings, upcoming_fixtures
-from app.transfers import suggest_transfers
+from app.planner import build_plan
+from app.squad import OptimisationError, squad_rules
 
 app = FastAPI(title="Football Performance Forecaster")
 
@@ -47,8 +50,13 @@ master_db_cache = TTLCache(maxsize=1, ttl=3600)
 fixture_cache = TTLCache(maxsize=1, ttl=3600)
 manager_cache = TTLCache(maxsize=512, ttl=120)
 entry_cache = TTLCache(maxsize=512, ttl=600)
+history_cache = TTLCache(maxsize=512, ttl=120)
 
 IS_SEASON_ACTIVE = False  # The master switch
+
+Chip = Literal["none", "wildcard", "freehit", "bboost", "3xc"]
+CHIP_LABELS = {"wildcard": "Wildcard", "freehit": "Free Hit", "bboost": "Bench Boost", "3xc": "Triple Captain"}
+MAX_TRANSFERS = 5
 
 
 @cached(cache=master_db_cache, lock=cache_lock)
@@ -98,10 +106,31 @@ def fetch_manager_entry(manager_id):
     return fetch_manager_json(entry_cache, manager_id, f"{FPL_API}/entry/{manager_id}/")
 
 
+def fetch_manager_history(manager_id):
+    """A manager's season so far: transfers made each gameweek and the chips they've played, or None."""
+    return fetch_manager_json(history_cache, manager_id, f"{FPL_API}/entry/{manager_id}/history/")
+
+
 def load_projections():
     master = fetch_master_fpl_data()
-    projections, _ = project_players(master, fetch_fixtures())
-    return master, projections
+    projections, first_gameweek = project_players(master, fetch_fixtures())
+    return master, projections, first_gameweek
+
+
+def manager_status(master, history, planning_gameweek):
+    """Free transfers and chip availability for the gameweek being planned.
+
+    Both come from the manager's history. If it can't be read they are reported as unknown rather
+    than guessed: free transfers become None, and every chip is offered.
+    """
+    current = next((event["id"] for event in master["events"] if event["is_current"]), None)
+    free = free_transfers(history, current, max_free_transfers(master)) if history else None
+    if history and planning_gameweek:
+        chips = chip_availability(master.get("chips"), history, planning_gameweek)
+        chips["known"] = True
+    else:
+        chips = {"available": list(CHIP_ORDER), "used": [], "known": False}
+    return {"free_transfers": free, "free_transfers_known": free is not None, "chips": chips}
 
 
 def rank_by_xp(players, projections):
@@ -135,6 +164,20 @@ def player_image(player):
     return get_player_image_url(str(player.get("photo", "")).replace(".jpg", ""))
 
 
+def squad_card(player, is_captain=False, is_vice_captain=False, multiplier=1, is_new=False):
+    """A squad member as the pitch and bench display him."""
+    return {
+        "name": player["web_name"],
+        "position": player["element_type"],  # 1=GK, 2=DEF, 3=MID, 4=FWD
+        "price": format_price(player),
+        "is_captain": is_captain,
+        "is_vice_captain": is_vice_captain,
+        "multiplier": multiplier,
+        "is_new": is_new,
+        "image_url": player_image(player),
+    }
+
+
 @app.get("/api/system-status")
 async def get_system_status():
     return {
@@ -163,23 +206,20 @@ def get_manager_team(manager_id: int):
         if not player:
             continue
 
-        formatted_player = {
-            "name": player["web_name"],
-            "position": player["element_type"],  # 1=GK, 2=DEF, 3=MID, 4=FWD
-            "price": format_price(player),
-            "is_captain": pick["is_captain"],
-            "is_vice_captain": pick["is_vice_captain"],
-            "multiplier": pick["multiplier"],
-            "image_url": player_image(player),
-        }
+        card = squad_card(player, pick["is_captain"], pick["is_vice_captain"], pick["multiplier"])
         # A multiplier of 0 means the player is on the bench.
-        (starting_xi if pick["multiplier"] > 0 else bench).append(formatted_player)
+        (starting_xi if pick["multiplier"] > 0 else bench).append(card)
+
+    planning_gameweek = next((event["id"] for event in master_data["events"] if event["is_next"]), None)
+    status = manager_status(master_data, fetch_manager_history(manager_id), planning_gameweek)
 
     return {
         "manager_id": manager_id,
         "team_name": entry.get("name"),
         "manager_name": manager_name or None,
         "gameweek": gameweek,
+        "bank": f"£{((squad_data.get('entry_history') or {}).get('bank') or 0) / 10:.1f}m",
+        **status,
         "squad": {
             "starting_xi": starting_xi,
             "bench": bench
@@ -188,27 +228,65 @@ def get_manager_team(manager_id: int):
 
 
 @app.get("/api/transfer-suggestions/{manager_id}")
-def get_transfer_suggestions(manager_id: int):
-    master_data, projections = load_projections()
+def get_transfer_suggestions(
+    manager_id: int,
+    chip: Chip = "none",
+    transfers: Optional[int] = Query(None, ge=1, le=MAX_TRANSFERS),
+):
+    """The best transfers for a manager's squad.
+
+    `transfers` is the most transfers to make, defaulting to the manager's free transfers. Wildcard and
+    Free Hit rebuild the whole squad and ignore it.
+    """
+    master_data, projections, first_gameweek = load_projections()
 
     squad_data = fetch_manager_picks(manager_id, current_gameweek(master_data))
     if squad_data is None:
         return {"error": "Manager ID not found."}
 
-    players = master_data["elements"]
-    by_id = {p["id"]: p for p in players}
-    picks = [pick for pick in squad_data.get("picks", []) if pick["element"] in by_id]
-    bank = (squad_data.get("entry_history") or {}).get("bank") or 0
+    by_id = {p["id"]: p for p in master_data["elements"]}
+    squad = [by_id[pick["element"]] for pick in squad_data.get("picks", []) if pick["element"] in by_id]
+    if len(squad) != squad_rules(master_data).size:
+        return {"error": "Couldn't read a full squad for this manager."}
 
-    swaps = suggest_transfers(
-        squad=[by_id[pick["element"]] for pick in picks],
-        players=players,
-        projections=projections,
-        bank=bank,
-        bench_ids={pick["element"] for pick in picks if pick["multiplier"] == 0},
-    )
+    planning_gameweek = next((event["id"] for event in master_data["events"] if event["is_next"]), first_gameweek)
+    status = manager_status(master_data, fetch_manager_history(manager_id), planning_gameweek)
+    if chip != "none" and chip not in status["chips"]["available"]:
+        return {"error": f"Your {CHIP_LABELS[chip]} has already been played in this half of the season."}
 
-    team_names = team_short_names(master_data)
+    free = status["free_transfers"]
+    requested = transfers or min(max(free or 1, 1), MAX_TRANSFERS)
+    entry_history = squad_data.get("entry_history") or {}
+    bank = entry_history.get("bank") or 0
+
+    try:
+        plan = build_plan(
+            master_data,
+            projections,
+            squad,
+            bank=bank,
+            squad_value=entry_history.get("value"),
+            chip=chip,
+            transfers=requested,
+            free_transfers=free if free is not None else 1,
+        )
+    except OptimisationError as error:
+        return {"error": str(error)}
+
+    return {
+        "chip": chip,
+        "gameweek": planning_gameweek,
+        "bank": f"£{bank / 10:.1f}m",
+        "free_transfers": free,
+        "free_transfers_known": free is not None,
+        "transfers_requested": requested,
+        **format_plan(plan, master_data, projections),
+    }
+
+
+def format_plan(plan, master, projections):
+    """The API shape for a plan: swaps, the proposed squad, a summary and any chip detail."""
+    team_names = team_short_names(master)
 
     def side(player):
         return {
@@ -222,8 +300,31 @@ def get_transfer_suggestions(manager_id: int):
             "image_url": player_image(player),
         }
 
+    def card(player):
+        return squad_card(
+            player,
+            is_captain=player["id"] == plan.captain["id"],
+            is_vice_captain=player["id"] == plan.vice["id"],
+            is_new=player["id"] in plan.new_ids,
+        )
+
+    gain = max(0.0, plan.new_xp - plan.current_xp)
+    rebuild_horizon = plan.horizon == "xp_next"
+    highlight = None
+    if plan.highlight and plan.highlight["kind"] == "bench":
+        highlight = {"kind": "bench", "xp_next": plan.highlight["xp_next"]}
+    elif plan.highlight:
+        captain = plan.captain
+        highlight = {
+            "kind": "captain",
+            "name": captain["web_name"],
+            "team": team_names.get(captain["team"], ""),
+            "price": format_price(captain),
+            "xp_next": plan.highlight["xp_next"],
+            "image_url": player_image(captain),
+        }
+
     return {
-        "bank": f"£{bank / 10:.1f}m",
         "suggestions": [
             {
                 "position": swap.out["element_type"],
@@ -231,17 +332,33 @@ def get_transfer_suggestions(manager_id: int):
                 "in": side(swap.into),
                 "xp_gain": round(swap.xp_gain, 1),
                 "xp_gain_next": round(swap.xp_gain_next, 1),
-                "cost_change": round(swap.cost_change / 10, 1),
+                "cost_change": swap.cost_change,
                 "reason": swap.reason,
             }
-            for swap in swaps
+            for swap in plan.swaps
         ],
+        "summary": {
+            "transfers_used": len(plan.swaps),
+            "xp_gain": round(gain, 1),
+            "hit_cost": plan.hit_cost,
+            "net_gain": round(gain - plan.hit_cost, 1),
+            "current_xp": round(plan.current_xp, 1),
+            "new_xp": round(plan.new_xp, 1),
+            "horizon": "next gameweek" if rebuild_horizon else "next 5 gameweeks",
+            "bank_after": f"£{max(plan.bank_after, 0) / 10:.1f}m",
+        },
+        "squad": {
+            "starting_xi": [card(p) for p in sorted(plan.starters, key=lambda p: p["element_type"])],
+            "bench": [card(p) for p in plan.bench],
+        },
+        "highlight": highlight,
+        "notes": plan.notes,
     }
 
 
 @app.get("/api/top-picks")
 def get_top_picks():
-    master_data, projections = load_projections()
+    master_data, projections, _ = load_projections()
     forwards = [p for p in master_data["elements"] if p["element_type"] == 4]
 
     return {
@@ -328,7 +445,7 @@ def get_target_fixture():
 
 @app.get("/api/top-performers")
 def get_top_performers():
-    master_data, projections = load_projections()
+    master_data, projections, _ = load_projections()
     team_names = {team["id"]: team["short_name"] for team in master_data["teams"]}
 
     return {
